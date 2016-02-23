@@ -162,6 +162,18 @@ Visualizer.prototype.dequeue = function() {
 
   }
 
+  if (event.type == 'hmc-proposal') {
+
+    var context = this.overlayCanvas.getContext('2d');
+    context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+    this.drawPath(this.overlayCanvas, { path: this.simulation.mcmc.proposalTrajectory, color: 'rgb(64,64,64)', lw: 1.5 });
+    this.drawArrow(this.overlayCanvas, { from: this.simulation.mcmc.proposalTrajectory[this.simulation.mcmc.proposalTrajectory.length-2], to: this.simulation.mcmc.proposalTrajectory[this.simulation.mcmc.proposalTrajectory.length-1], color: 'rgb(64,64,64)', lw: 1.5 });
+    this.drawCircle(this.overlayCanvas, { fill: 'rgb(64,64,64)', center: event.proposal, radius: 0.02, lw: 0});
+
+    this.drawArrow(this.overlayCanvas, { from: event.last, to: event.proposal, color: 'rgb(192,192,192)', lw: 2 });
+  }
+
   if (event.type == 'hmc-animation-start') {
     var context = this.overlayCanvas.getContext('2d');
     context.clearRect(0, 0, this.canvas.width, this.canvas.height);

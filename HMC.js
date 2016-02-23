@@ -42,7 +42,7 @@ MCMC.registerAlgorithm('HMC', {
         visualizer.queue.push({type: 'hmc-animation', proposal: self.proposalTrajectory[i], index: i, last: last, initialMomentum: initialMomentum});
       visualizer.queue.push({type: 'hmc-animation-end'});
     } else {
-      visualizer.queue.push({type: 'proposal', proposal: proposal, last: last, initialMomentum: initialMomentum});
+      visualizer.queue.push({type: 'hmc-proposal', proposal: proposal, last: last, initialMomentum: initialMomentum});
     }
 
     var newLogDensity = self.logDensity(proposal);
@@ -63,5 +63,6 @@ MCMC.registerAlgorithm('HMC', {
     folder.add(self, 'dt', 0.05, 0.5).step(0.025).name('Leapfrog &Delta;t');
     folder.open();
   }
+
 }
 );
