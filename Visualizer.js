@@ -149,28 +149,19 @@ Visualizer.prototype.dequeue = function() {
   var event = this.queue.shift();
 
   if (event.type == 'proposal') {
-
     var context = this.overlayCanvas.getContext('2d');
     context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-
-    /*
-    this.drawPath(this.overlayCanvas, { path: this.simulation.mcmc.proposalTrajectory, color: 'rgb(64,64,64)', lw: 1.5 });
-    this.drawArrow(this.overlayCanvas, { from: this.simulation.mcmc.proposalTrajectory[this.simulation.mcmc.proposalTrajectory.length-2], to: this.simulation.mcmc.proposalTrajectory[this.simulation.mcmc.proposalTrajectory.length-1], color: 'rgb(64,64,64)', lw: 1.5 });
-    this.drawCircle(this.overlayCanvas, { fill: 'rgb(64,64,64)', center: event.proposal, radius: 0.02, lw: 0});
-    */
     this.drawArrow(this.overlayCanvas, { from: event.last, to: event.proposal, color: 'rgb(192,192,192)', lw: 2 });
-
+    if (event.hasOwnProperty('proposalCov'))
+      this.drawProposalContour(this.overlayCanvas, event.last, event.proposalCov);
   }
 
   if (event.type == 'hmc-proposal') {
-
     var context = this.overlayCanvas.getContext('2d');
     context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-
     this.drawPath(this.overlayCanvas, { path: this.simulation.mcmc.proposalTrajectory, color: 'rgb(64,64,64)', lw: 1.5 });
     this.drawArrow(this.overlayCanvas, { from: this.simulation.mcmc.proposalTrajectory[this.simulation.mcmc.proposalTrajectory.length-2], to: this.simulation.mcmc.proposalTrajectory[this.simulation.mcmc.proposalTrajectory.length-1], color: 'rgb(64,64,64)', lw: 1.5 });
     this.drawCircle(this.overlayCanvas, { fill: 'rgb(64,64,64)', center: event.proposal, radius: 0.02, lw: 0});
-
     this.drawArrow(this.overlayCanvas, { from: event.last, to: event.proposal, color: 'rgb(192,192,192)', lw: 2 });
   }
 
@@ -207,6 +198,31 @@ Visualizer.prototype.dequeue = function() {
 
 };
 
+Visualizer.prototype.drawProposalContour = function(canvas, last, cov) {
+  var context = canvas.getContext('2d');
+  context.lineWidth = 1 * window.devicePixelRatio ;
+  context.globalAlpha = 1;
+  var eigs = cov.jacobiRotation({maxIter:100, tolerance: 1e-5});
+  for (var i = 0; i < 2; ++i)
+    eigs.V.setCol(i, eigs.V.col(i).scale(Math.sqrt(eigs.D[i*2+i])));
+  var eigs = [eigs.V.col(0), eigs.V.col(1)];
+  var a = eigs[0].norm();
+  var b = eigs[1].norm();
+  var angle = Math.atan2(-eigs[0][1], eigs[0][0]);
+  var center = this.transform(last);
+  context.beginPath();
+  context.strokeStyle = 'rgba(128,128,128,' +  this.alpha + ')';
+  context.ellipse(center[0], center[1], a * this.scale, b * this.scale, angle, 0, 2 * Math.PI, false);
+  context.stroke();
+  context.beginPath();
+  context.strokeStyle = 'rgba(216,216,216,' +  this.alpha + ')';
+  context.ellipse(center[0], center[1], 2 * a * this.scale, 2 * b * this.scale, angle, 0, 2 * Math.PI, false);
+  context.stroke();
+  // draw principle axes
+  // this.drawArrow(canvas, { from: last, to: last.add(eigs[0]), color: 'rgba(192,192,192,' +  this.alpha + ')', lw: 1 });
+  // this.drawArrow(canvas, { from: last, to: last.add(eigs[1]), color: 'rgba(192,192,192,' +  this.alpha + ')', lw: 1 });
+};
+
 Visualizer.prototype.drawDensityContours = function(logDensity) {
 
   var nx = 201, ny = 201, nz = 10;
@@ -237,7 +253,7 @@ Visualizer.prototype.drawDensityContours = function(logDensity) {
     var contour = [];
     for (var j = 0; j < contours[i].length; ++j)
       contour.push([contours[i][j].x, contours[i][j].y]);
-    this.drawPath(this.densityCanvas, {path:contour, color:'#69b', alpha: 0.8 * this.alpha * (i+1) / contours.length + 0.1});
+    this.drawPath(this.densityCanvas, {path:contour, color:'#69b', fill:'rgba(64,128,192,0.1)', alpha: 0.8 * this.alpha * (i+1) / contours.length + 0.1});
   }
 
 };

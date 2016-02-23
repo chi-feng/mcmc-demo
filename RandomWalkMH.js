@@ -18,7 +18,7 @@ MCMC.registerAlgorithm('RandomWalkMH', {
     var proposalDist = new MultivariateNormal(self.chain[lastIndex], Float64Array.eye(self.dim).scale(self.sigma * self.sigma));
     var proposal = proposalDist.getSample();
     var logAcceptRatio = self.logDensity(proposal) - self.logDensity(self.chain[lastIndex]);
-    visualizer.queue.push({type: 'proposal', proposal: proposal.copy(), last: self.chain[lastIndex].copy()});
+    visualizer.queue.push({type: 'proposal', proposal: proposal.copy(), proposalCov: proposalDist.cov.copy(), last: self.chain[lastIndex].copy()});
     if (Math.log(Math.random()) < logAcceptRatio) {
       self.chain.push(proposal);
       visualizer.queue.push({type: 'accept', proposal: proposal.copy(), last: self.chain[lastIndex].copy()});
