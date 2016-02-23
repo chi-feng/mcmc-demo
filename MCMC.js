@@ -24,20 +24,22 @@ MCMC.targets['standard'] = {
 };
 
 
-// Mixture distribution with two components
+// Mixture distribution with three components
 var mixtureComponents = [
   new MultivariateNormal(Float64Array.matrix([[-1.5],[-1.5]]), Float64Array.eye(2).scale(0.8)),
-  new MultivariateNormal(Float64Array.matrix([[1.5],[1.5]]), Float64Array.eye(2).scale(0.8))
+  new MultivariateNormal(Float64Array.matrix([[1.5],[1.5]]), Float64Array.eye(2).scale(0.8)),
+  new MultivariateNormal(Float64Array.matrix([[-2],[2]]), Float64Array.eye(2).scale(0.5))
 ];
-MCMC.targetNames.push('bimodal');
-MCMC.targets['bimodal'] = {
+MCMC.targetNames.push('multimodal');
+MCMC.targets['multimodal'] = {
   logDensity: function(x) {
-    return Math.log(Math.exp(mixtureComponents[0].logDensity(x)) + Math.exp(mixtureComponents[1].logDensity(x)));
+    return Math.log(Math.exp(mixtureComponents[0].logDensity(x)) + Math.exp(mixtureComponents[1].logDensity(x)) + Math.exp(mixtureComponents[2].logDensity(x)));
   },
   gradLogDensity: function(x) {
     var p1 = Math.exp(mixtureComponents[0].logDensity(x));
     var p2 = Math.exp(mixtureComponents[1].logDensity(x));
-    return (mixtureComponents[0].gradLogDensity(x).scale(p1).add(mixtureComponents[1].gradLogDensity(x).scale(p2))).scale(1 / (p1 + p2));
+    var p3 = Math.exp(mixtureComponents[2].logDensity(x));
+    return (mixtureComponents[0].gradLogDensity(x).scale(p1).add(mixtureComponents[1].gradLogDensity(x).scale(p2)).add(mixtureComponents[2].gradLogDensity(x).scale(p3))).scale(1 / (p1 + p2 + p3));
   }
 };
 

@@ -72,7 +72,7 @@ window.onload = function() {
   sim.setTarget(MCMC.targetNames[0]);
   sim.mcmc.init(sim.mcmc);
 
-  var gui = new dat.GUI();
+  var gui = new dat.GUI({width: 300});
 
   var folder = gui.addFolder('Simulation');
   folder.add(sim, 'algorithm', MCMC.algorithmNames).name('Algorithm').onChange(function(value) {

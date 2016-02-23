@@ -16,7 +16,7 @@ MCMC.registerAlgorithm('MALA', {
   step: function(self, visualizer) {
     var lastIndex   = self.chain.length - 1;
     var gradient    = self.gradLogDensity(self.chain[lastIndex]);
-    var Z           = Float64Array.build(NormalDistribution.getSample, self.dim, 1).scale(self.sigma);
+    var Z           = Float64Array.build(MultivariateNormal.getNormal, self.dim, 1).scale(self.sigma);
     var proposal    = self.chain[lastIndex].add(Z).add(gradient.scale(self.sigma * self.sigma / 2));
 
     var logProposalDensity = function(x, y) {
