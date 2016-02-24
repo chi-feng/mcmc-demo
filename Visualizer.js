@@ -195,10 +195,7 @@ Visualizer.prototype.dequeue = function() {
     var context = this.overlayCanvas.getContext('2d');
     context.clearRect(0, 0, this.canvas.width, this.canvas.height);
     var drawProposalArrow = true;
-    // draw proposal covariance
-    if (event.hasOwnProperty('proposalCov')) {
-      this.drawProposalContour(this.overlayCanvas, this.simulation.mcmc.chain[this.simulation.mcmc.chain.length - 2], event.proposalCov);
-    }
+    var drawProposalCov = true;
     // draw initial momentum vector (for Hamiltonian MC)
     if (event.hasOwnProperty('initialMomentum')) {
       var to = this.simulation.mcmc.chain[this.simulation.mcmc.chain.length - 2].add(event.initialMomentum);
@@ -233,6 +230,19 @@ Visualizer.prototype.dequeue = function() {
         }
       }
     }
+    // draw MALA gradient/proposal offset
+    if (event.hasOwnProperty('gradient')) {
+      this.drawArrow(this.overlayCanvas, { from: this.simulation.mcmc.chain[this.simulation.mcmc.chain.length - 2], to: this.simulation.mcmc.chain[this.simulation.mcmc.chain.length - 2].add(event.gradient), color: this.nutsColor, lw: 1 });
+      this.drawArrow(this.overlayCanvas, { from: this.simulation.mcmc.chain[this.simulation.mcmc.chain.length - 2].add(event.gradient), to: event.proposal, color: this.proposalColor, lw: 1.5});
+      if (event.hasOwnProperty('proposalCov')) {
+        drawProposalCov = false;
+        this.drawProposalContour(this.overlayCanvas, this.simulation.mcmc.chain[this.simulation.mcmc.chain.length - 2].add(event.gradient), event.proposalCov);
+      }
+    }
+    // draw proposal covariance
+    if (event.hasOwnProperty('proposalCov') && drawProposalCov) {
+      this.drawProposalContour(this.overlayCanvas, this.simulation.mcmc.chain[this.simulation.mcmc.chain.length - 2], event.proposalCov);
+    }
     // draw proposal arrow
     if (drawProposalArrow) {
       this.drawArrow(this.overlayCanvas, {from: this.simulation.mcmc.chain[this.simulation.mcmc.chain.length - 2], to: event.proposal, color: this.proposalColor, lw: 1 });
@@ -262,13 +272,13 @@ Visualizer.prototype.dequeue = function() {
       this.drawPath(this.overlayCanvas, { path: path, color: color, lw: (type == 'accept') ? 1 : 0.5});
       this.drawCircle(this.overlayCanvas, { color: color, center: event.trajectory[event.offset].to, radius: 0.015, lw: 0.5});
     } else if (type == 'left' || type == 'right') {
-        this.nutsColor = (type == 'right') ? '#09c' : '#66f';
-        var path = [event.trajectory[event.offset+1].from, event.trajectory[event.offset+1].to];
-        var color = (event.trajectory[event.offset+1].type == 'accept') ? this.nutsColor : '#f00';
-        var from = (type == 'left') ? path[1] : path[0];
-        var to   = (type == 'left') ? path[0] : path[1];
-        // this.drawArrow(this.overlayCanvas, {from: from, to: to, color: color, lw: 1, arrowScale: 0.7});
-        this.drawCircle(this.overlayCanvas, { fill: color, center: event.trajectory[event.offset+1].from, radius: 0.025, lw: 0});
+      this.nutsColor = (type == 'right') ? '#09c' : '#66f';
+      var path = [event.trajectory[event.offset+1].from, event.trajectory[event.offset+1].to];
+      var color = (event.trajectory[event.offset+1].type == 'accept') ? this.nutsColor : '#f00';
+      var from = (type == 'left') ? path[1] : path[0];
+      var to   = (type == 'left') ? path[0] : path[1];
+      // this.drawArrow(this.overlayCanvas, {from: from, to: to, color: color, lw: 1, arrowScale: 0.7});
+      this.drawCircle(this.overlayCanvas, { fill: color, center: event.trajectory[event.offset+1].from, radius: 0.025, lw: 0});
     }
   }
 

@@ -5,7 +5,7 @@ MCMC.registerAlgorithm('MALA', {
   description: 'Metropolis-adjusted Langevin algorithm',
 
   init: function(self) {
-    self.sigma = 1;
+    self.sigma = 0.5;
   },
 
   reset: function(self) {
@@ -13,13 +13,14 @@ MCMC.registerAlgorithm('MALA', {
   },
 
   attachUI: function(self, folder) {
-    folder.add(self, 'sigma', 0.05, 2).step(0.05).name('Proposal &sigma;');
+    folder.add(self, 'sigma', 0.1, 1).step(0.05).name('Proposal &sigma;');
     folder.open();
   },
 
   step: function(self, visualizer) {
     var gradient    = self.gradLogDensity(self.chain.last());
-    var Z           = Float64Array.build(MultivariateNormal.getNormal, self.dim, 1).scale(self.sigma);
+    var Zdist       = new MultivariateNormal(zeros(self.dim), eye(self.dim).scale(self.sigma * self.sigma));
+    var Z           = Zdist.getSample();
     var proposal    = self.chain.last().add(Z).add(gradient.scale(self.sigma * self.sigma / 2));
 
     var logProposalDensity = function(x, y) {
@@ -33,7 +34,7 @@ MCMC.registerAlgorithm('MALA', {
     visualizer.queue.push({
       type:        'proposal',
       proposal:    proposal.copy(),
-      Z:           Z.copy(),
+      proposalCov: Zdist.cov.copy(),
       gradient:    gradient.scale(self.sigma * self.sigma / 2),
     });
 
