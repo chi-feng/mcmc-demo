@@ -17,6 +17,11 @@ MultivariateNormal.getNormal = function() {
   return x * Math.sqrt(-2 * Math.log(w) / w);
 };
 
+MultivariateNormal.getSample = function(dim) {
+  var dist = new MultivariateNormal(zeros(dim), eye(dim));
+  return dist.getSample();
+};
+
 MultivariateNormal.prototype.setCovariance = function(cov) {
   this.cov = cov;
   this.L = cov.chol();

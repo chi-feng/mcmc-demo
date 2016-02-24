@@ -1,67 +1,49 @@
 'use strict';
 
-MCMC.registerAlgorithm('HMC', {
+MCMC.registerAlgorithm('HamiltonianMC', {
 
   description: 'Hamiltonian Monte Carlo',
 
   init: function(self) {
-    self.leapfrogSteps  = 20;
-    self.dt             = 0.1;
-    self.reset(self);
+    self.leapfrogSteps = 20;
+    self.dt = 0.1;
   },
 
   reset: function(self) {
-    self.chain        = [ Float64Array.zeros(self.dim, 1) ];
-  },
-
-  step: function(self, visualizer) {
-
-    var lastIndex   = self.chain.length - 1;
-    var last        = self.chain[lastIndex];
-
-    var logDensity  = self.logDensity(last);
-    var gradient    = self.gradLogDensity(last);
-
-    var initialMomentum = Float64Array.build(MultivariateNormal.getNormal, self.dim, 1);
-    var momentum    = initialMomentum.copy();
-    var hamiltonian = logDensity + momentum.norm2() / 2;
-
-    var proposal = last.copy();
-    self.proposalTrajectory = [ proposal.copy() ];
-    for (var i = 0; i < self.leapfrogSteps; ++i) {
-      momentum.increment(gradient.scale(self.dt / 2));
-      proposal.increment(momentum.scale(self.dt));
-      gradient = self.gradLogDensity(proposal);
-      momentum.increment(gradient.scale(self.dt / 2));
-      self.proposalTrajectory.push(proposal.copy());
-    }
-
-    if (visualizer.animateProposal) {
-      visualizer.queue.push({type: 'hmc-animation-start', last: last, initialMomentum: initialMomentum});
-      for (var i = 0; i < self.leapfrogSteps+1; ++i)
-        visualizer.queue.push({type: 'hmc-animation', proposal: self.proposalTrajectory[i], index: i, last: last, initialMomentum: initialMomentum});
-      visualizer.queue.push({type: 'hmc-animation-end'});
-    } else {
-      visualizer.queue.push({type: 'hmc-proposal', proposal: proposal, last: last, initialMomentum: initialMomentum});
-    }
-
-    var newLogDensity = self.logDensity(proposal);
-    var newHamiltonian = newLogDensity + momentum.norm2() / 2;
-    var delta = hamiltonian - newHamiltonian;
-
-    if (delta < 0 || Math.random() < Math.exp(delta)) {
-      self.chain.push(proposal.copy());
-      visualizer.queue.push({type: 'accept', proposal: proposal, last: last});
-    } else {
-      self.chain.push(last.copy());
-      visualizer.queue.push({type: 'reject', proposal: proposal, last: last});
-    }
+    self.chain = [ zeros(self.dim) ];
   },
 
   attachUI: function(self, folder) {
     folder.add(self, 'leapfrogSteps', 5, 100).step(1).name('Leapfrog Steps');
     folder.add(self, 'dt', 0.05, 0.5).step(0.025).name('Leapfrog &Delta;t');
     folder.open();
+  },
+
+  step: function(self, visualizer) {
+
+    var q0 = self.chain.last(),
+        p0 = MultivariateNormal.getSample(self.dim);
+
+    var q = q0.copy(),
+        p = p0.copy();
+
+    var trajectory = [q.copy()];
+    for (var i = 0; i < self.leapfrogSteps; ++i) {
+      p.increment(self.gradLogDensity(q).scale(self.dt / 2));
+      q.increment(p.scale(self.dt));
+      p.increment(self.gradLogDensity(q).scale(self.dt / 2));
+      trajectory.push(q.copy());
+    }
+    visualizer.queue.push({type: 'proposal', proposal: q.copy(), trajectory: trajectory, initialMomentum: p0.copy()});
+
+    var logAcceptRatio = (self.logDensity(q) - p.norm2() / 2) - (self.logDensity(q0) - p0.norm2() / 2);
+    if (Math.random() < Math.exp(logAcceptRatio)) {
+      self.chain.push(q.copy());
+      visualizer.queue.push({type: 'accept', proposal: q.copy()});
+    } else {
+      self.chain.push(q0.copy());
+      visualizer.queue.push({type: 'reject', proposal: q.copy()});
+    }
   }
 
 }

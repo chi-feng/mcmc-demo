@@ -17,7 +17,9 @@ Simulation.prototype.setAlgorithm = function(algorithmName) {
   this.mcmc.attachUI = MCMC.algorithms[algorithmName].attachUI;
   if (this.hasAlgorithm && this.hasTarget) {
     this.visualizer.resize();
-    this.mcmc.init(this.mcmc);
+    if (this.mcmc.initialized == false)
+      this.mcmc.init(this.mcmc);
+    this.mcmc.reset(this.mcmc);
     this.mcmc.initialized = true;
   }
 };
@@ -31,7 +33,9 @@ Simulation.prototype.setTarget = function(targetName) {
   this.mcmc.reset(this.mcmc);
   if (this.hasAlgorithm && this.hasTarget) {
     this.visualizer.resize();
-    this.mcmc.init(this.mcmc);
+    if (this.mcmc.initialized == false)
+      this.mcmc.init(this.mcmc);
+    this.mcmc.reset(this.mcmc);
     this.mcmc.initialized = true;
   }
 };
@@ -42,10 +46,6 @@ Simulation.prototype.reset = function() {
 };
 
 Simulation.prototype.step = function() {
-  if (this.mcmc.initialized == false) {
-    this.mcmc.init(this.mcmc);
-    this.mcmc.initialized = true;
-  }
   if (this.visualizer.queue.length == 0)
     this.mcmc.step(this.mcmc, this.visualizer);
   this.visualizer.dequeue();
@@ -74,30 +74,30 @@ window.onload = function() {
 
   var gui = new dat.GUI({width: 300});
 
-  var folder = gui.addFolder('Simulation');
-  folder.add(sim, 'algorithm', MCMC.algorithmNames).name('Algorithm').onChange(function(value) {
+  var f1 = gui.addFolder('Simulation options');
+  f1.add(sim, 'algorithm', MCMC.algorithmNames).name('Algorithm').onChange(function(value) {
     sim.setAlgorithm(value);
-    gui.removeFolder('MCMC');
-    var f = gui.addFolder('MCMC');
+    gui.removeFolder('MCMC Options');
+    var f = gui.addFolder('MCMC Options');
     sim.mcmc.attachUI(sim.mcmc, f);
     f.open();
   });
-  folder.add(sim, 'target', MCMC.targetNames).name('Target distribution').onChange(function(value) {
+  f1.add(sim, 'target', MCMC.targetNames).name('Target distribution').onChange(function(value) {
     sim.setTarget(value);
   });
-  folder.add(sim, 'autoplay').name('Autoplay');
-  folder.add(sim, 'delay', 16, 1000).name('Autoplay delay (msec)');
-  folder.add(sim, 'step').name('Step forward');
-  folder.add(sim, 'reset').name('Reset chain');
-  folder.open();
+  f1.add(sim, 'autoplay').name('Autoplay');
+  f1.add(sim, 'delay', 16, 1000).name('Autoplay delay (msec)');
+  f1.add(sim, 'step').name('Step forward');
+  f1.add(sim, 'reset').name('Reset chain');
+  f1.open();
 
   var f2 = gui.addFolder('Visualization Options');
-  f2.add(viz, 'animateProposal').name('Animate Proposal');
-  f2.add(viz, 'showDensityContour').name('Density Contours');
+  f2.add(viz, 'animateProposal').name('Animate proposal');
+  f2.add(viz, 'showTargetDensity').name('Show target density');
   f2.open();
 
-  gui.removeFolder('MCMC');
-  var f3 = gui.addFolder('MCMC');
+  gui.removeFolder('MCMC Options');
+  var f3 = gui.addFolder('MCMC Options');
   sim.mcmc.attachUI(sim.mcmc, f3);
   f3.open();
 

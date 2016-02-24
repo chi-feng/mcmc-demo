@@ -713,3 +713,8 @@ Float64Array.prototype.jacobiRotation = function(options) {
   return {V:V, D:D};
 
 };
+
+var zeros = Float64Array.zeros;
+var eye = Float64Array.eye;
+var linspace = Float64Array.linspace;
+var matrix = Float64Array.matrix;

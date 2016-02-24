@@ -6,11 +6,15 @@ MCMC.registerAlgorithm('RandomWalkMH', {
 
   init: function(self) {
     self.sigma = 1;
-    self.reset(self);
   },
 
   reset: function(self) {
-    self.chain = [Float64Array.zeros(self.dim, 1)];
+    self.chain = [zeros(self.dim)];
+  },
+
+  attachUI: function(self, folder) {
+    folder.add(self, 'sigma', 0.05, 2).step(0.05).name('Proposal &sigma;');
+    folder.open();
   },
 
   step: function(self, visualizer) {
@@ -28,8 +32,4 @@ MCMC.registerAlgorithm('RandomWalkMH', {
     }
   },
 
-  attachUI: function(self, folder) {
-    folder.add(self, 'sigma', 0.05, 2).step(0.05).name('Proposal &sigma;');
-    folder.open();
-  }
 });

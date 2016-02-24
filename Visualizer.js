@@ -4,17 +4,23 @@ function Visualizer(canvas) {
 
   this.canvas = canvas;
 
-  this.queue = [];
+  this.queue = []; // events for visualization
 
-  this.xmin = -6;
-  this.xmax = 6;
+  this.xmin = -6; // in coordinate-space
+  this.xmax =  6; // ymin, ymax set according to canvas aspect ratio
 
-  this.showSamples        = true;
-  this.showDensityContour = true;
-  this.animateProposal    = true;
-  this.tweening           = false;
-  this.alpha              = 0.5;
+  this.showSamples       = true;
+  this.showTargetDensity = true;
+  this.animateProposal   = true;
+  this.tweening          = false;
 
+  this.arrowSize       = 10;
+  this.proposalColor   = '#ccc';
+  this.trajectoryColor = '#333';
+  this.acceptColor     = '#4c4';
+  this.rejectColor     = '#f00';
+
+  // offscreen canvases to avoid expensive redraws
   this.densityCanvas = document.createElement('canvas');
   this.samplesCanvas = document.createElement('canvas');
   this.overlayCanvas = document.createElement('canvas');
@@ -22,53 +28,62 @@ function Visualizer(canvas) {
 }
 
 Visualizer.prototype.resize = function() {
-
-  this.canvas.width      = window.innerWidth  * window.devicePixelRatio;
-  this.canvas.height     = window.innerHeight * window.devicePixelRatio;
+  // resize canvas to fit window and scale by devicePixelRatio for HiDPI displays
+  this.canvas.width      = document.body.clientWidth  * window.devicePixelRatio;
+  this.canvas.height     = document.body.clientHeight * window.devicePixelRatio;
   this.canvas.style.zoom = 1 / window.devicePixelRatio;
-
+  // set ymin, ymax assuming equal aspect ratio
   this.ymin = this.xmin * this.canvas.height / this.canvas.width;
   this.ymax = this.xmax * this.canvas.height / this.canvas.width;
-
+  // scale and origin (location of 0, 0)
   this.scale = this.canvas.width / (this.xmax - this.xmin);
   this.origin = new Float64Array([this.canvas.width / 2, this.canvas.height / 2 + this.canvas.height / (this.ymax - this.ymin) * (this.ymax + this.ymin) / 2]);
-
+  // resize offscreen canvases
   this.densityCanvas.width  = this.canvas.width;
   this.densityCanvas.height = this.canvas.height;
   this.samplesCanvas.width  = this.canvas.width;
   this.samplesCanvas.height = this.canvas.height;
   this.overlayCanvas.width  = this.canvas.width;
   this.overlayCanvas.height = this.canvas.height;
-
   this.reset();
-
 };
 
 Visualizer.prototype.reset = function() {
-  this.queue = [];
+  // clear the queue
+  this.queue = [ ];
+  // stop tweening
+  this.tweening = false;
+  // clear offscreen and onscreen canvases
   this.densityCanvas.getContext('2d').clearRect(0, 0, this.canvas.width, this.canvas.height);
   this.samplesCanvas.getContext('2d').clearRect(0, 0, this.canvas.width, this.canvas.height);
   this.overlayCanvas.getContext('2d').clearRect(0, 0, this.canvas.width, this.canvas.height);
   this.canvas.getContext('2d').clearRect(0, 0, this.canvas.width, this.canvas.height);
+  // redraw density contours
   this.drawDensityContours(this.simulation.mcmc.logDensity);
   this.render();
 };
 
 Visualizer.prototype.render = function() {
   var context = this.canvas.getContext('2d');
+  // clear onscreen canvas
   context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-  if (this.showDensityContour) {
+  // default composition operator
+  context.globalCompositeOperation = 'source-over';
+  // draw target density canvas
+  if (this.showTargetDensity) {
     context.drawImage(this.densityCanvas, 0, 0);
   }
+  // draw samples canvas
   if (this.showSamples) {
     context.globalCompositeOperation = 'multiply';
     context.drawImage(this.samplesCanvas, 0, 0);
   }
-  context.globalCompositeOperation = 'source-over';
+  // draw overlay canvas
+  context.globalCompositeOperation = 'multiply';
   context.drawImage(this.overlayCanvas, 0, 0);
-  context.globalCompositeOperation = 'source-over';
 };
 
+// transform world-coordinate to pixel coordinate
 Visualizer.prototype.transform = function(x) {
   var transformed = new Float64Array(2);
   transformed[0] = x[0] * this.scale + this.origin[0];
@@ -111,12 +126,11 @@ Visualizer.prototype.drawPath = function(canvas, options) {
     var point = this.transform(path[i]);
     context.lineTo(point[0], point[1]);
   }
+  context.stroke();
   if (options.fill) {
-    context.closePath();
     context.fillStyle = options.fill;
     context.fill();
   }
-  context.stroke();
 };
 
 Visualizer.prototype.drawArrow = function(canvas, options) {
@@ -124,13 +138,14 @@ Visualizer.prototype.drawArrow = function(canvas, options) {
   context.lineWidth = (options.lw) ? options.lw * window.devicePixelRatio : 1 * window.devicePixelRatio ;
   context.strokeStyle = (options.color) ? options.color : 'rgb(0,0,0)';
   context.globalAlpha = (options.alpha) ? options.alpha : 1;
+  var arrowScale = (options.arrowScale) ? options.arrowScale : 1;
   var from = this.transform(options.from);
   var to = this.transform(options.to);
   context.beginPath()
   context.moveTo(from[0], from[1]);
   context.lineTo(to[0], to[1]);
   var t = Math.atan2(to[1] - from[1], to[0] - from[0]) + Math.PI;
-  var size = 10 * window.devicePixelRatio;
+  var size = arrowScale * this.arrowSize * window.devicePixelRatio;
   context.moveTo(to[0] + size * Math.cos(t + Math.PI / 8), to[1] + size * Math.sin(t + Math.PI / 8));
   context.lineTo(to[0], to[1]);
   context.lineTo(to[0] + size * Math.cos(t - Math.PI / 8), to[1] + size * Math.sin(t - Math.PI / 8));
@@ -149,51 +164,54 @@ Visualizer.prototype.dequeue = function() {
   var event = this.queue.shift();
 
   if (event.type == 'proposal') {
+    // clear overlay canvas
     var context = this.overlayCanvas.getContext('2d');
     context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    this.drawArrow(this.overlayCanvas, { from: event.last, to: event.proposal, color: 'rgb(192,192,192)', lw: 2 });
-    if (event.hasOwnProperty('proposalCov'))
+    // draw proposal covariance
+    if (event.hasOwnProperty('proposalCov')) {
       this.drawProposalContour(this.overlayCanvas, event.last, event.proposalCov);
+    }
+    // draw initial momentum vector (for Hamiltonian MC)
+    if (event.hasOwnProperty('initialMomentum')) {
+      var to = this.simulation.mcmc.chain[this.simulation.mcmc.chain.length - 2].add(event.initialMomentum);
+      this.drawArrow(this.overlayCanvas, {from: this.simulation.mcmc.chain[this.simulation.mcmc.chain.length - 2], to: to, color: this.proposalColor, lw: 2 });
+    }
+    // draw Hamiltonian MC trajectory or queue animation frames if necessary
+    // otherwise, draw arrow from chain.last() to proposal
+    if (event.hasOwnProperty('trajectory')) {
+      if (this.animateProposal) {
+        for (var i = 0; i < event.trajectory.length - 1; ++i)
+          this.queue.splice(i, 0, {type: 'trajectory-animation-step', trajectory: event.trajectory, offset: i});
+        this.queue.push({type: 'trajectory-animation-end', trajectory: event.trajectory});
+      } else {
+        this.drawPath(this.overlayCanvas, { path: event.trajectory, color: this.trajectoryColor, lw: 1 });
+        this.drawArrow(this.overlayCanvas, {from: event.trajectory[event.trajectory.length - 2], to: event.trajectory.last(), color: this.trajectoryColor, lw: 1 });
+      }
+    } else {
+      this.drawArrow(this.overlayCanvas, {from: this.simulation.mcmc.chain[this.simulation.mcmc.chain.length - 2], to: event.proposal, color: this.proposalColor, lw: 2 });
+    }
   }
 
-  if (event.type == 'hmc-proposal') {
+  if (event.type == 'trajectory-animation-step') {
+    this.tweening = true; // start skiping delay for calling requestAnimationFrame
     var context = this.overlayCanvas.getContext('2d');
-    context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    this.drawPath(this.overlayCanvas, { path: this.simulation.mcmc.proposalTrajectory, color: 'rgb(64,64,64)', lw: 1.5 });
-    this.drawArrow(this.overlayCanvas, { from: this.simulation.mcmc.proposalTrajectory[this.simulation.mcmc.proposalTrajectory.length-2], to: this.simulation.mcmc.proposalTrajectory[this.simulation.mcmc.proposalTrajectory.length-1], color: 'rgb(64,64,64)', lw: 1.5 });
-    this.drawCircle(this.overlayCanvas, { fill: 'rgb(64,64,64)', center: event.proposal, radius: 0.02, lw: 0});
-    this.drawArrow(this.overlayCanvas, { from: event.last, to: event.proposal, color: 'rgb(192,192,192)', lw: 2 });
+    var path = [event.trajectory[event.offset], event.trajectory[event.offset + 1]];
+    this.drawPath(this.overlayCanvas, { path: path, color: this.trajectoryColor, lw: 1});
+    this.drawArrow(this.overlayCanvas, {from: event.trajectory[event.offset], to: event.trajectory[event.offset + 1], color: this.trajectoryColor, lw: 0.5, arrowScale: 0.8, alpha: 0.8 });
   }
 
-  if (event.type == 'hmc-animation-start') {
-    var context = this.overlayCanvas.getContext('2d');
-    context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    this.drawArrow(this.overlayCanvas, { from: event.last, to: event.last.add(event.initialMomentum), color: 'rgb(128,128,128)', lw: 2, alpha:0.5 });
-  }
-
-  if (event.type == 'hmc-animation') {
-    this.tweening = true;
-    var context = this.overlayCanvas.getContext('2d');
-    context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    this.drawArrow(this.overlayCanvas, { from: event.last, to: event.last.add(event.initialMomentum), color: 'rgb(128,128,128)', lw: 2, alpha:0.5 });
-    this.drawCircle(this.overlayCanvas, { fill: 'rgb(64,64,64)', center: event.proposal, radius: 0.04, lw: 0});
-    this.drawPath(this.overlayCanvas, { path: this.simulation.mcmc.proposalTrajectory, offset: this.simulation.mcmc.proposalTrajectory.length - 1 - event.index, color: 'rgb(64,64,64)', lw: 1.5 });
-  }
-
-  if (event.type == 'hmc-animation-end') {
-    this.tweening = false;
-    this.drawPath(this.overlayCanvas, { path: this.simulation.mcmc.proposalTrajectory, color: 'rgb(64,64,64)', lw: 1.5 });
-    this.drawArrow(this.overlayCanvas, { from: this.simulation.mcmc.proposalTrajectory[this.simulation.mcmc.proposalTrajectory.length-2], to: this.simulation.mcmc.proposalTrajectory[this.simulation.mcmc.proposalTrajectory.length-1], color: 'rgb(64,64,64)', lw: 1.5 });
+  if (event.type == 'trajectory-animation-end') {
+    this.tweening = false; // stop skipping delay for calling requestAnimationFrame
   }
 
   if (event.type == 'accept') {
-    this.drawArrow(this.overlayCanvas, { from: event.last, to: event.proposal, color: 'rgb(64,192,64)', lw: 2, alpha:0.5 });
+    this.drawArrow(this.overlayCanvas, { from: this.simulation.mcmc.chain[this.simulation.mcmc.chain.length - 2], to: event.proposal, color: this.acceptColor, lw: 2 });
     this.drawSample(this.samplesCanvas, event.proposal);
   }
 
   if (event.type == 'reject') {
-    this.drawArrow(this.overlayCanvas, { from: event.last, to: event.proposal, color: 'rgb(255,64,64)', lw: 2 });
-    this.drawSample(this.samplesCanvas, event.last);
+    this.drawArrow(this.overlayCanvas, { from: this.simulation.mcmc.chain[this.simulation.mcmc.chain.length - 2], to: event.proposal, color: this.rejectColor, lw: 2 });
+    this.drawSample(this.samplesCanvas, this.simulation.mcmc.chain[this.simulation.mcmc.chain.length - 2]);
   }
 
 };
@@ -202,22 +220,35 @@ Visualizer.prototype.drawProposalContour = function(canvas, last, cov) {
   var context = canvas.getContext('2d');
   context.lineWidth = 1 * window.devicePixelRatio ;
   context.globalAlpha = 1;
+
+  // get principle components using eigenvalue decomposition
   var eigs = cov.jacobiRotation({maxIter:100, tolerance: 1e-5});
   for (var i = 0; i < 2; ++i)
     eigs.V.setCol(i, eigs.V.col(i).scale(Math.sqrt(eigs.D[i*2+i])));
   var eigs = [eigs.V.col(0), eigs.V.col(1)];
+
+  // get major and minor axes and rotation
   var a = eigs[0].norm();
   var b = eigs[1].norm();
   var angle = Math.atan2(-eigs[0][1], eigs[0][0]);
   var center = this.transform(last);
   context.beginPath();
-  context.strokeStyle = 'rgba(128,128,128,' +  this.alpha + ')';
-  context.ellipse(center[0], center[1], a * this.scale, b * this.scale, angle, 0, 2 * Math.PI, false);
-  context.stroke();
-  context.beginPath();
-  context.strokeStyle = 'rgba(216,216,216,' +  this.alpha + ')';
+  context.strokeStyle = '#ddd';
   context.ellipse(center[0], center[1], 2 * a * this.scale, 2 * b * this.scale, angle, 0, 2 * Math.PI, false);
   context.stroke();
+
+  // shaded contour
+  // var gradient = context.createRadialGradient(center[0], center[1], 0, center[0], center[1], Math.max(2 * a * this.scale, 2 * b * this.scale));
+  // gradient.addColorStop(0.2, "#ccc");
+  // gradient.addColorStop(1, "#fff");
+  // context.fillStyle = gradient;
+  // context.fill();
+
+  context.beginPath();
+  context.strokeStyle = '#999';
+  context.ellipse(center[0], center[1], a * this.scale, b * this.scale, angle, 0, 2 * Math.PI, false);
+  context.stroke();
+
   // draw principle axes
   // this.drawArrow(canvas, { from: last, to: last.add(eigs[0]), color: 'rgba(192,192,192,' +  this.alpha + ')', lw: 1 });
   // this.drawArrow(canvas, { from: last, to: last.add(eigs[1]), color: 'rgba(192,192,192,' +  this.alpha + ')', lw: 1 });
@@ -226,10 +257,10 @@ Visualizer.prototype.drawProposalContour = function(canvas, last, cov) {
 Visualizer.prototype.drawDensityContours = function(logDensity) {
 
   var nx = 201, ny = 201, nz = 10;
-  var x = Float64Array.linspace(this.xmin - 1, this.xmax + 1, nx);
-  var y = Float64Array.linspace(this.ymin - 1, this.ymax + 1, ny);
+  var x = linspace(this.xmin - 1, this.xmax + 1, nx);
+  var y = linspace(this.ymin - 1, this.ymax + 1, ny);
   var data = [];
-  var point = Float64Array.zeros(2,1);
+  var point = zeros(2,1);
 
   var min = 1e10, max = 0;
   for (var i = 0; i < nx; ++i) {
@@ -244,7 +275,7 @@ Visualizer.prototype.drawDensityContours = function(logDensity) {
     }
   }
 
-  var z = Float64Array.linspace(min + 0.025 * (max - min), max - 0.05 * (max - min), nz);
+  var z = linspace(min + 0.025 * (max - min), max - 0.05 * (max - min), nz);
   var c = new Conrec;
   c.contour(data, 0, nx - 1, 0, ny - 1, x, y, nz, z);
   var contours = c.contourList();
@@ -253,7 +284,7 @@ Visualizer.prototype.drawDensityContours = function(logDensity) {
     var contour = [];
     for (var j = 0; j < contours[i].length; ++j)
       contour.push([contours[i][j].x, contours[i][j].y]);
-    this.drawPath(this.densityCanvas, {path:contour, color:'#69b', fill:'rgba(64,128,192,0.1)', alpha: 0.8 * this.alpha * (i+1) / contours.length + 0.1});
+    this.drawPath(this.densityCanvas, {path:contour, color:'#69b', fill:'rgba(64,128,192,0.1)', alpha: 0.5 * (i+1) / contours.length + 0.1});
   }
 
 };

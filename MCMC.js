@@ -8,44 +8,25 @@ var MCMC = {
   registerAlgorithm: function(name, methods) {
     MCMC.algorithmNames.push(name);
     MCMC.algorithms[name] = methods;
-  }
-};
-
-// Standard bimodal distribution
-MCMC.targetNames.push('standard');
-var dist = new MultivariateNormal(Float64Array.zeros(2,1), Float64Array.eye(2));
-MCMC.targets['standard'] = {
-  logDensity: function(x) {
-    return dist.logDensity(x);
   },
-  gradLogDensity: function(x) {
-    return dist.gradLogDensity(x);
-  }
-};
-
-
-// Mixture distribution with three components
-var mixtureComponents = [
-  new MultivariateNormal(Float64Array.matrix([[-1.5],[-1.5]]), Float64Array.eye(2).scale(0.8)),
-  new MultivariateNormal(Float64Array.matrix([[1.5],[1.5]]), Float64Array.eye(2).scale(0.8)),
-  new MultivariateNormal(Float64Array.matrix([[-2],[2]]), Float64Array.eye(2).scale(0.5))
-];
-MCMC.targetNames.push('multimodal');
-MCMC.targets['multimodal'] = {
-  logDensity: function(x) {
-    return Math.log(Math.exp(mixtureComponents[0].logDensity(x)) + Math.exp(mixtureComponents[1].logDensity(x)) + Math.exp(mixtureComponents[2].logDensity(x)));
+  computeMean: function(chain) {
+    var mean = chain[0];
+    for (var i = 1; i < chain.length; ++i)
+      mean.increment(chain[i]);
+    return mean.scale(1.0 / chain.length);
   },
-  gradLogDensity: function(x) {
-    var p1 = Math.exp(mixtureComponents[0].logDensity(x));
-    var p2 = Math.exp(mixtureComponents[1].logDensity(x));
-    var p3 = Math.exp(mixtureComponents[2].logDensity(x));
-    return (mixtureComponents[0].gradLogDensity(x).scale(p1).add(mixtureComponents[1].gradLogDensity(x).scale(p2)).add(mixtureComponents[2].gradLogDensity(x).scale(p3))).scale(1 / (p1 + p2 + p3));
+  computeAutocorrelation: function(chain, lag) {
+    var mean = MCMC.computeMean(chain);
+    var autocovariance = zeros(lag, 1);
+    for (var k = 0; k <= lag; ++k)
+      for (var i = k; i < chain.length; ++i)
+        autocovariance[k] += chain[i].subtract(mean).dot(chain[i-k].subtract(mean));
+    return autocovariance.scale(1.0 / autocovariance[0]);
   }
 };
-
 
 // Banana distribution
-var bananaDist = new MultivariateNormal(Float64Array.matrix([[0],[4]]), Float64Array.matrix([[1,0.5],[0.5,1]]));
+var bananaDist = new MultivariateNormal(matrix([[0],[4]]), matrix([[1,0.5],[0.5,1]]));
 MCMC.targetNames.push('banana');
 MCMC.targets['banana'] = {
   logDensity: function(x) {
@@ -67,4 +48,39 @@ MCMC.targets['banana'] = {
     grad[1] = gradx1;
     return grad;
   }
+};
+
+// Standard bimodal distribution
+MCMC.targetNames.push('standard');
+var dist = new MultivariateNormal(Float64Array.zeros(2,1), eye(2));
+MCMC.targets['standard'] = {
+  logDensity: function(x) {
+    return dist.logDensity(x);
+  },
+  gradLogDensity: function(x) {
+    return dist.gradLogDensity(x);
+  }
+};
+
+// Mixture distribution with three components
+var mixtureComponents = [
+  new MultivariateNormal(matrix([[-1.5],[-1.5]]), eye(2).scale(0.8)),
+  new MultivariateNormal(matrix([[1.5],[1.5]]), eye(2).scale(0.8)),
+  new MultivariateNormal(matrix([[-2],[2]]), eye(2).scale(0.5))
+];
+MCMC.targetNames.push('multimodal');
+MCMC.targets['multimodal'] = {
+  logDensity: function(x) {
+    return Math.log(Math.exp(mixtureComponents[0].logDensity(x)) + Math.exp(mixtureComponents[1].logDensity(x)) + Math.exp(mixtureComponents[2].logDensity(x)));
+  },
+  gradLogDensity: function(x) {
+    var p1 = Math.exp(mixtureComponents[0].logDensity(x));
+    var p2 = Math.exp(mixtureComponents[1].logDensity(x));
+    var p3 = Math.exp(mixtureComponents[2].logDensity(x));
+    return (mixtureComponents[0].gradLogDensity(x).scale(p1).add(mixtureComponents[1].gradLogDensity(x).scale(p2)).add(mixtureComponents[2].gradLogDensity(x).scale(p3))).scale(1 / (p1 + p2 + p3));
+  }
+};
+// fillin to get last element of array
+if (!Array.prototype.last){
+  Array.prototype.last = function(){ return this[this.length - 1]; };
 };
