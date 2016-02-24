@@ -9,7 +9,7 @@ MCMC.registerAlgorithm('RandomWalkMH', {
   },
 
   reset: function(self) {
-    self.chain = [zeros(self.dim)];
+    self.chain = [MultivariateNormal.getSample(self.dim)];
   },
 
   attachUI: function(self, folder) {

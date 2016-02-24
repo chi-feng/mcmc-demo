@@ -262,14 +262,13 @@ Visualizer.prototype.dequeue = function() {
       this.drawPath(this.overlayCanvas, { path: path, color: color, lw: (type == 'accept') ? 1 : 0.5});
       this.drawCircle(this.overlayCanvas, { color: color, center: event.trajectory[event.offset].to, radius: 0.015, lw: 0.5});
     } else if (type == 'left' || type == 'right') {
-      // this.tweening = false;
-      this.nutsColor = (type == 'right') ? '#09c' : '#66f';
-      var path = [event.trajectory[event.offset+1].from, event.trajectory[event.offset+1].to];
-      var color = (event.trajectory[event.offset+1].type == 'accept') ? this.nutsColor : '#f00';
-      var from = (type == 'left') ? path[1] : path[0];
-      var to   = (type == 'left') ? path[0] : path[1];
-      // this.drawArrow(this.overlayCanvas, {from: from, to: to, color: color, lw: 1, arrowScale: 0.7});
-      this.drawCircle(this.overlayCanvas, { fill: color, center: event.trajectory[event.offset+1].from, radius: 0.025, lw: 0});
+        this.nutsColor = (type == 'right') ? '#09c' : '#66f';
+        var path = [event.trajectory[event.offset+1].from, event.trajectory[event.offset+1].to];
+        var color = (event.trajectory[event.offset+1].type == 'accept') ? this.nutsColor : '#f00';
+        var from = (type == 'left') ? path[1] : path[0];
+        var to   = (type == 'left') ? path[0] : path[1];
+        // this.drawArrow(this.overlayCanvas, {from: from, to: to, color: color, lw: 1, arrowScale: 0.7});
+        this.drawCircle(this.overlayCanvas, { fill: color, center: event.trajectory[event.offset+1].from, radius: 0.025, lw: 0});
     }
   }
 
@@ -357,7 +356,8 @@ Visualizer.prototype.drawDensityContours = function(logDensity) {
     var contour = [];
     for (var j = 0; j < contours[i].length; ++j)
       contour.push([contours[i][j].x, contours[i][j].y]);
-    this.drawPath(this.densityCanvas, {path:contour, color:'#69b', fill:'rgba(64,128,192,0.1)', alpha: 0.5 * (i+1) / contours.length + 0.1});
+    // this.drawPath(this.densityCanvas, {path:contour, color: 'transparent', fill:'rgba(64,128,192,0.1)'});
+    this.drawPath(this.densityCanvas, {path:contour, color:'#69b', alpha: 0.5 * (i+1) / contours.length + 0.1});
   }
 
 };

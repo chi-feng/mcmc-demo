@@ -1,6 +1,6 @@
 'use strict';
 
-MCMC.registerAlgorithm('NUTS', {
+MCMC.registerAlgorithm('NaiveNUTS', {
 
   description: 'Naive No-U-Turn Sampler',
 
@@ -10,7 +10,7 @@ MCMC.registerAlgorithm('NUTS', {
   },
 
   reset: function(self) {
-    self.chain = [ zeros(self.dim) ];
+    self.chain = [ MultivariateNormal.getSample(self.dim) ];
   },
 
   attachUI: function(self, folder) {
@@ -97,7 +97,7 @@ MCMC.registerAlgorithm('NUTS', {
 
     while (s == 1) {
       var v = Math.sign(Math.random() - 0.5);
-      var q_minus, p_minus, q_plus, p_plus, C_prime, s_prime;
+      var C_prime, s_prime;
       if (v == -1) {
         trajectory.push({type:'left'});
         var result = buildTree(q_minus, p_minus, u, v, j);

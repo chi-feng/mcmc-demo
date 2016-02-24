@@ -10,7 +10,7 @@ var MCMC = {
     MCMC.algorithms[name] = methods;
   },
   computeMean: function(chain) {
-    var mean = chain[0];
+    var mean = chain[0].copy();
     for (var i = 1; i < chain.length; ++i)
       mean.increment(chain[i]);
     return mean.scale(1.0 / chain.length);
@@ -50,9 +50,9 @@ MCMC.targets['banana'] = {
   }
 };
 
-// Standard bimodal distribution
+// Bivariate normal distribution with no correlation
 MCMC.targetNames.push('standard');
-var dist = new MultivariateNormal(Float64Array.zeros(2,1), eye(2));
+var dist = new MultivariateNormal(zeros(2,1), eye(2));
 MCMC.targets['standard'] = {
   logDensity: function(x) {
     return dist.logDensity(x);
@@ -61,6 +61,24 @@ MCMC.targets['standard'] = {
     return dist.gradLogDensity(x);
   }
 };
+
+// Donut
+MCMC.targetNames.push('donut');
+MCMC.targets['donut'] = {
+  radius: 3,
+  sigma2: 0.25,
+  logDensity: function(x) {
+    var r = x.norm();
+    return -Math.pow(r - MCMC.targets.donut.radius, 2) / MCMC.targets.donut.sigma2;
+  },
+  gradLogDensity: function(x) {
+    var r = x.norm();
+    if (r == 0) return zeros(2);
+    return matrix([[x[0] * (MCMC.targets.donut.radius / r - 1) * 2 / MCMC.targets.donut.sigma2],
+                   [x[1] * (MCMC.targets.donut.radius / r - 1) * 2 / MCMC.targets.donut.sigma2]]);
+  }
+};
+
 
 // Mixture distribution with three components
 var mixtureComponents = [

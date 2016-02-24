@@ -78,6 +78,7 @@ window.onload = function() {
   sim.setAlgorithm(MCMC.algorithmNames[0]);
   sim.setTarget(MCMC.targetNames[0]);
   sim.mcmc.init(sim.mcmc);
+  window.onresize = function() { viz.resize(); };
 
   gui = new dat.GUI({width: 300});
 

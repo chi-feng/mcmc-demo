@@ -415,6 +415,9 @@ Float64Array.prototype.swap_rows = function(i, k) {
  */
 Float64Array.prototype.det = function() {
   if (this.rows != this.cols) throw 'det() requires square matrix';
+  if (this.rows == 2 && this.cols == 2) {
+    return this[0] * this[3] - this[1] * this[2];
+  }
   // upper triangularize, then return product of diagonal
   var U = this.copy();
   for (var i = 0; i < n; ++i) {
