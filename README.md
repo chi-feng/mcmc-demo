@@ -7,7 +7,7 @@
  - [Hamiltonian Monte Carlo](HamiltonianMC.js) \[2\] (Algorithm 1)
  - [No-U-Turn Sampler (Naive)](NaiveNUTS.js) \[2\] (Algorithm 2)
  - [No-U-Turn Sampler (Efficient)](EfficientNUTS.js) \[2\] (Algorithm 3)
- - [Metropolis-adjusted Langevin Algorithm (MALA)] \[3\]
+ - [Metropolis-adjusted Langevin Algorithm (MALA)](MALA.js) \[3\]
 
 \[1\] H. Haario, E. Saksman, and J. Tamminen, [An adaptive Metropolis algorithm](http://projecteuclid.org/euclid.bj/1080222083) (2001)  
 \[2\] M. D. Hoffman, A. Gelman, [The No-U-Turn Sampler: Adaptively Setting Path Lengths in Hamiltonian Monte Carlo](http://arxiv.org/abs/1111.4246) (2011)  
