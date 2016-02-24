@@ -46,5 +46,4 @@ MCMC.registerAlgorithm('HamiltonianMC', {
     }
   }
 
-}
-);
+});

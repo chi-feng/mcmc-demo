@@ -159,6 +159,32 @@ Visualizer.prototype.drawSample = function(canvas, center) {
   context.globalCompositeOperation = 'source-over';
 }
 
+// http://stackoverflow.com/questions/17242144/javascript-convert-hsb-hsv-color-to-rgb-accurately
+Visualizer.HSVtoRGB = function(h, s, v) {
+  var r, g, b, i, f, p, q, t;
+  if (arguments.length === 1) {
+    s = h.s, v = h.v, h = h.h;
+  }
+  i = Math.floor(h * 6);
+  f = h * 6 - i;
+  p = v * (1 - s);
+  q = v * (1 - f * s);
+  t = v * (1 - (1 - f) * s);
+  switch (i % 6) {
+    case 0: r = v, g = t, b = p; break;
+    case 1: r = q, g = v, b = p; break;
+    case 2: r = p, g = v, b = t; break;
+    case 3: r = p, g = q, b = v; break;
+    case 4: r = t, g = p, b = v; break;
+    case 5: r = v, g = p, b = q; break;
+  }
+  return {
+    r: Math.round(r * 255),
+    g: Math.round(g * 255),
+    b: Math.round(b * 255)
+  };
+}
+
 Visualizer.prototype.dequeue = function() {
 
   var event = this.queue.shift();
@@ -167,9 +193,10 @@ Visualizer.prototype.dequeue = function() {
     // clear overlay canvas
     var context = this.overlayCanvas.getContext('2d');
     context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    var drawProposalArrow = true;
     // draw proposal covariance
     if (event.hasOwnProperty('proposalCov')) {
-      this.drawProposalContour(this.overlayCanvas, event.last, event.proposalCov);
+      this.drawProposalContour(this.overlayCanvas, this.simulation.mcmc.chain[this.simulation.mcmc.chain.length - 2], event.proposalCov);
     }
     // draw initial momentum vector (for Hamiltonian MC)
     if (event.hasOwnProperty('initialMomentum')) {
@@ -187,7 +214,21 @@ Visualizer.prototype.dequeue = function() {
         this.drawPath(this.overlayCanvas, { path: event.trajectory, color: this.trajectoryColor, lw: 1 });
         this.drawArrow(this.overlayCanvas, {from: event.trajectory[event.trajectory.length - 2], to: event.trajectory.last(), color: this.trajectoryColor, lw: 1 });
       }
-    } else {
+      drawProposalArrow = false;
+    }
+    // draw NUTS trajectory
+    if (event.hasOwnProperty('nuts_trajectory')) {
+      drawProposalArrow = false;
+      if (this.animateProposal) {
+        for (var i = 0; i < event.nuts_trajectory.length; ++i)
+          this.queue.splice(i, 0, {type: 'nuts-animation-step', trajectory: event.nuts_trajectory, offset: i});
+        this.queue.push({type: 'nuts-animation-end', trajectory: event.nuts_trajectory});
+      } else {
+
+      }
+    }
+    // draw proposal arrow
+    if (drawProposalArrow) {
       this.drawArrow(this.overlayCanvas, {from: this.simulation.mcmc.chain[this.simulation.mcmc.chain.length - 2], to: event.proposal, color: this.proposalColor, lw: 2 });
     }
   }
@@ -197,11 +238,25 @@ Visualizer.prototype.dequeue = function() {
     var context = this.overlayCanvas.getContext('2d');
     var path = [event.trajectory[event.offset], event.trajectory[event.offset + 1]];
     this.drawPath(this.overlayCanvas, { path: path, color: this.trajectoryColor, lw: 1});
-    this.drawArrow(this.overlayCanvas, {from: event.trajectory[event.offset], to: event.trajectory[event.offset + 1], color: this.trajectoryColor, lw: 0.5, arrowScale: 0.8, alpha: 0.8 });
+    // this.drawArrow(this.overlayCanvas, {from: event.trajectory[event.offset], to: event.trajectory[event.offset + 1], color: this.trajectoryColor, lw: 0.5, arrowScale: 0.8, alpha: 0.8 });
+    this.drawCircle(this.overlayCanvas, { fill: event.trajectory[event.offset + 1], center: event.trajectory[event.offset + 1], radius: 0.015, lw: 0});
   }
 
   if (event.type == 'trajectory-animation-end') {
     this.tweening = false; // stop skipping delay for calling requestAnimationFrame
+  }
+
+  if (event.type == 'nuts-animation-step') {
+    this.tweening = true; // start skiping delay for calling requestAnimationFrame
+    var context = this.overlayCanvas.getContext('2d');
+    var path = [event.trajectory[event.offset].from, event.trajectory[event.offset].to];
+    var color = (event.trajectory[event.offset].type == 'accept') ? '#06f' : '#f00';
+    this.drawPath(this.overlayCanvas, { path: path, color: color, lw: 1});
+    this.drawCircle(this.overlayCanvas, { fill: color, center: event.trajectory[event.offset].to, radius: 0.015, lw: 0});
+  }
+
+  if (event.type == 'nuts-animation-end') {
+    this.tweening = false;
   }
 
   if (event.type == 'accept') {
