@@ -48,7 +48,12 @@ Simulation.prototype.reset = function() {
 Simulation.prototype.step = function() {
   if (this.visualizer.queue.length == 0)
     this.mcmc.step(this.mcmc, this.visualizer);
-  this.visualizer.dequeue();
+  if (this.visualizer.animateProposal == false) {
+    while (this.visualizer.queue.length > 0)
+      this.visualizer.dequeue();
+  } else {
+    this.visualizer.dequeue();
+  }
   this.visualizer.render();
 };
 
@@ -63,22 +68,24 @@ Simulation.prototype.animate = function() {
   }
 };
 
+var viz, sim, gui;
+
 window.onload = function() {
-  var viz = new Visualizer(document.getElementById('visualizer'));
-  var sim = new Simulation();
+  viz = new Visualizer(document.getElementById('visualizer'));
+  sim = new Simulation();
   sim.visualizer = viz;
   viz.simulation = sim;
   sim.setAlgorithm(MCMC.algorithmNames[0]);
   sim.setTarget(MCMC.targetNames[0]);
   sim.mcmc.init(sim.mcmc);
 
-  var gui = new dat.GUI({width: 300});
+  gui = new dat.GUI({width: 300});
 
   var f1 = gui.addFolder('Simulation options');
   f1.add(sim, 'algorithm', MCMC.algorithmNames).name('Algorithm').onChange(function(value) {
     sim.setAlgorithm(value);
-    gui.removeFolder('MCMC Options');
-    var f = gui.addFolder('MCMC Options');
+    gui.removeFolder('Algorithm Options');
+    var f = gui.addFolder('Algorithm Options');
     sim.mcmc.attachUI(sim.mcmc, f);
     f.open();
   });
@@ -86,7 +93,7 @@ window.onload = function() {
     sim.setTarget(value);
   });
   f1.add(sim, 'autoplay').name('Autoplay');
-  f1.add(sim, 'delay', 16, 1000).name('Autoplay delay (msec)');
+  f1.add(sim, 'delay', 0, 1000).name('Autoplay delay (msec)');
   f1.add(sim, 'step').name('Step forward');
   f1.add(sim, 'reset').name('Reset chain');
   f1.open();
@@ -94,10 +101,11 @@ window.onload = function() {
   var f2 = gui.addFolder('Visualization Options');
   f2.add(viz, 'animateProposal').name('Animate proposal');
   f2.add(viz, 'showTargetDensity').name('Show target density');
+  f2.add(viz, 'showSamples').name('Show samples');
   f2.open();
 
-  gui.removeFolder('MCMC Options');
-  var f3 = gui.addFolder('MCMC Options');
+  gui.removeFolder('Algorithm Options');
+  var f3 = gui.addFolder('Algorithm Options');
   sim.mcmc.attachUI(sim.mcmc, f3);
   f3.open();
 

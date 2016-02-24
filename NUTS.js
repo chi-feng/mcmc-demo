@@ -99,12 +99,14 @@ MCMC.registerAlgorithm('NUTS', {
       var v = Math.sign(Math.random() - 0.5);
       var q_minus, p_minus, q_plus, p_plus, C_prime, s_prime;
       if (v == -1) {
+        trajectory.push({type:'left'});
         var result = buildTree(q_minus, p_minus, u, v, j);
         q_minus = result.q_minus;
         p_minus = result.p_minus;
         C_prime = result.C_prime;
         s_prime = result.s_prime;
       } else {
+        trajectory.push({type:'right'});
         var result = buildTree(q_plus, p_plus, u, v, j);
         q_plus  = result.q_plus;
         p_plus  = result.p_plus;
