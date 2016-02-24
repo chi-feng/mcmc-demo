@@ -34,15 +34,15 @@ MCMC.registerAlgorithm('HamiltonianMC', {
       p.increment(self.gradLogDensity(q).scale(self.dt / 2));
       trajectory.push(q.copy());
     }
-    visualizer.queue.push({type: 'proposal', proposal: q.copy(), trajectory: trajectory, initialMomentum: p0.copy()});
+    visualizer.queue.push({type: 'proposal', proposal: q, trajectory: trajectory, initialMomentum: p0});
 
     var logAcceptRatio = (self.logDensity(q) - p.norm2() / 2) - (self.logDensity(q0) - p0.norm2() / 2);
     if (Math.random() < Math.exp(logAcceptRatio)) {
       self.chain.push(q.copy());
-      visualizer.queue.push({type: 'accept', proposal: q.copy()});
+      visualizer.queue.push({type: 'accept', proposal: q});
     } else {
       self.chain.push(q0.copy());
-      visualizer.queue.push({type: 'reject', proposal: q.copy()});
+      visualizer.queue.push({type: 'reject', proposal: q});
     }
   }
 

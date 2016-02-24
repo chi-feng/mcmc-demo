@@ -18,17 +18,16 @@ MCMC.registerAlgorithm('RandomWalkMH', {
   },
 
   step: function(self, visualizer) {
-    var lastIndex  = self.chain.length - 1;
-    var proposalDist = new MultivariateNormal(self.chain[lastIndex], Float64Array.eye(self.dim).scale(self.sigma * self.sigma));
-    var proposal = proposalDist.getSample();
-    var logAcceptRatio = self.logDensity(proposal) - self.logDensity(self.chain[lastIndex]);
-    visualizer.queue.push({type: 'proposal', proposal: proposal.copy(), proposalCov: proposalDist.cov.copy(), last: self.chain[lastIndex].copy()});
-    if (Math.log(Math.random()) < logAcceptRatio) {
+    var proposalDist    = new MultivariateNormal(self.chain.last(), eye(self.dim).scale(self.sigma * self.sigma));
+    var proposal        = proposalDist.getSample();
+    var logAcceptRatio  = self.logDensity(proposal) - self.logDensity(self.chain.last());
+    visualizer.queue.push({type: 'proposal', proposal: proposal, proposalCov: proposalDist.cov});
+    if (Math.random() < Math.exp(logAcceptRatio)) {
       self.chain.push(proposal);
-      visualizer.queue.push({type: 'accept', proposal: proposal.copy(), last: self.chain[lastIndex].copy()});
+      visualizer.queue.push({type: 'accept', proposal: proposal});
     } else {
-      self.chain.push(self.chain[lastIndex]);
-      visualizer.queue.push({type: 'reject', proposal: proposal.copy(), last: self.chain[lastIndex].copy()});
+      self.chain.push(self.chain.last());
+      visualizer.queue.push({type: 'reject', proposal: proposal});
     }
   },
 
