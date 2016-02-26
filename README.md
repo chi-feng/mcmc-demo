@@ -1,10 +1,10 @@
 # The Markov-chain Monte Carlo Petting Zoo
 ## List of algorithms
- - [Random Walk Metropolis Hastings](http://chifeng.scripts.mit.edu/stuff/mcmc-demo/#RandomWalkMH,banana) ([source](RandomWalkMH.js))
- - [Adaptive Metropolis Hastings](http://chifeng.scripts.mit.edu/stuff/mcmc-demo/#AdaptiveMH,banana) ([source](AdaptiveMH.js)) \[1\]
- - [Hamiltonian Monte Carlo](http://chifeng.scripts.mit.edu/stuff/mcmc-demo/#HamiltonianMC,banana) ([source](HamiltonianMC.js)) \[2\] (Algorithm 1)
- - [No-U-Turn Sampler](http://chifeng.scripts.mit.edu/stuff/mcmc-demo/#NaiveNUTS,banana) ([source](NaiveNUTS.js)) \[2\] (Algorithm 2)
- - [Metropolis-adjusted Langevin Algorithm (MALA)](http://chifeng.scripts.mit.edu/stuff/mcmc-demo/#MALA,banana) ([source](MALA.js)) \[3\]
+ - [Random Walk Metropolis Hastings](http://chifeng.scripts.mit.edu/stuff/mcmc-demo/#RandomWalkMH,banana) ([source](algorithms/RandomWalkMH.js))
+ - [Adaptive Metropolis Hastings](http://chifeng.scripts.mit.edu/stuff/mcmc-demo/#AdaptiveMH,banana) ([source](algorithms/AdaptiveMH.js)) \[1\]
+ - [Hamiltonian Monte Carlo](http://chifeng.scripts.mit.edu/stuff/mcmc-demo/#HamiltonianMC,banana) ([source](algorithms/HamiltonianMC.js)) \[2\] (Algorithm 1)
+ - [No-U-Turn Sampler](http://chifeng.scripts.mit.edu/stuff/mcmc-demo/#NaiveNUTS,banana) ([source](algorithms/NaiveNUTS.js)) \[2\] (Algorithm 2)
+ - [Metropolis-adjusted Langevin Algorithm (MALA)](http://chifeng.scripts.mit.edu/stuff/mcmc-demo/#MALA,banana) ([source](algorithms/MALA.js)) \[3\]
  - [Hessian-Hamiltonian Monte Carlo (H2MC)](http://chifeng.scripts.mit.edu/stuff/mcmc-demo/#H2MC,banana) ([source](algorithms/H2MC.js)) \[4\]
 
 ![NUTS in action](https://raw.githubusercontent.com/chi-feng/mcmc-demo/master/docs/nuts.gif)  
