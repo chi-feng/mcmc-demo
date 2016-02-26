@@ -18,6 +18,10 @@ MCMC.registerAlgorithm('H2MC', {
     self.negOffsetFactor = -(Math.cos(self.L) - 1);
     self.epsilon = 1e-8;
 
+    /**
+     * Based on C++ implementation by Tzu-Mao Li
+     * https://github.com/BachiLi/dpt
+     */
     self.computeGaussian = function(grad, hess) {
       var dim = self.dim;
 
