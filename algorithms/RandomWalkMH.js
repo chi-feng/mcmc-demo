@@ -4,6 +4,10 @@ MCMC.registerAlgorithm('RandomWalkMH', {
 
   description: 'Random walk Metropolis-Hastings',
 
+  about: function() {
+    window.open('https://en.wikipedia.org/wiki/Metropolis%E2%80%93Hastings_algorithm');
+  },
+
   init: function(self) {
     self.sigma = 1;
   },

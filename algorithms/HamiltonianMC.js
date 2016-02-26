@@ -4,8 +4,12 @@ MCMC.registerAlgorithm('HamiltonianMC', {
 
   description: 'Hamiltonian Monte Carlo',
 
+  about: function() {
+    window.open('https://en.wikipedia.org/wiki/Hybrid_Monte_Carlo');
+  },
+
   init: function(self) {
-    self.leapfrogSteps = 20;
+    self.leapfrogSteps = 35;
     self.dt = 0.1;
   },
 

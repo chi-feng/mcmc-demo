@@ -31,14 +31,14 @@ MCMC.targetNames.push('banana');
 MCMC.targets['banana'] = {
   logDensity: function(x) {
     var a = 2, b = 0.2;
-    var y = Float64Array.zeros(2,1);
+    var y = zeros(2,1);
     y[0] = x[0] / a;
     y[1] = x[1] * a + a * b * (x[0] * x[0] + a * a);
     return bananaDist.logDensity(y);
   },
   gradLogDensity: function(x) {
     var a = 2, b = 0.2;
-    var y = Float64Array.zeros(2,1);
+    var y = zeros(2,1);
     y[0] = x[0] / a;
     y[1] = x[1] * a + a * b * (x[0] * x[0] + a * a);
     var grad = bananaDist.gradLogDensity(y);
@@ -47,6 +47,23 @@ MCMC.targets['banana'] = {
     grad[0] = gradx0;
     grad[1] = gradx1;
     return grad;
+  }
+};
+
+// Donut
+MCMC.targetNames.push('donut');
+MCMC.targets['donut'] = {
+  radius: 2.6,
+  sigma2: 0.2,
+  logDensity: function(x) {
+    var r = x.norm();
+    return -Math.pow(r - MCMC.targets.donut.radius, 2) / MCMC.targets.donut.sigma2;
+  },
+  gradLogDensity: function(x) {
+    var r = x.norm();
+    if (r == 0) return zeros(2);
+    return matrix([[x[0] * (MCMC.targets.donut.radius / r - 1) * 2 / MCMC.targets.donut.sigma2],
+                   [x[1] * (MCMC.targets.donut.radius / r - 1) * 2 / MCMC.targets.donut.sigma2]]);
   }
 };
 
@@ -61,24 +78,6 @@ MCMC.targets['standard'] = {
     return dist.gradLogDensity(x);
   }
 };
-
-// Donut
-MCMC.targetNames.push('donut');
-MCMC.targets['donut'] = {
-  radius: 3,
-  sigma2: 0.25,
-  logDensity: function(x) {
-    var r = x.norm();
-    return -Math.pow(r - MCMC.targets.donut.radius, 2) / MCMC.targets.donut.sigma2;
-  },
-  gradLogDensity: function(x) {
-    var r = x.norm();
-    if (r == 0) return zeros(2);
-    return matrix([[x[0] * (MCMC.targets.donut.radius / r - 1) * 2 / MCMC.targets.donut.sigma2],
-                   [x[1] * (MCMC.targets.donut.radius / r - 1) * 2 / MCMC.targets.donut.sigma2]]);
-  }
-};
-
 
 // Mixture distribution with three components
 var mixtureComponents = [

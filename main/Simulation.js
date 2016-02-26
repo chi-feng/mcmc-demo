@@ -11,10 +11,12 @@ Simulation.prototype.setAlgorithm = function(algorithmName) {
   this.hasAlgorithm = true;
   this.algorithm = algorithmName;
   this.mcmc.initialized = false;
+  this.mcmc.description = MCMC.algorithms[algorithmName].description;
   this.mcmc.init = MCMC.algorithms[algorithmName].init;
   this.mcmc.reset = MCMC.algorithms[algorithmName].reset;
   this.mcmc.step = MCMC.algorithms[algorithmName].step;
   this.mcmc.attachUI = MCMC.algorithms[algorithmName].attachUI;
+  this.mcmc.about = MCMC.algorithms[algorithmName].about;
   if (this.hasAlgorithm && this.hasTarget) {
     this.visualizer.resize();
     if (this.mcmc.initialized == false)
@@ -30,7 +32,25 @@ Simulation.prototype.setTarget = function(targetName) {
   this.target = targetName;
   this.mcmc.logDensity = MCMC.targets[targetName].logDensity;
   this.mcmc.gradLogDensity = MCMC.targets[targetName].gradLogDensity;
-  this.mcmc.reset(this.mcmc);
+
+  // TODO: actually derive Hessians
+  // in the meantime, use finite difference :sadface:
+  var grad = this.mcmc.gradLogDensity, N = this.mcmc.dim;
+  var h = 1e-8;
+  this.mcmc.hessLogDensity = function(x) {
+    var hess = zeros(N, N);
+    var Delta = eye(N, N).scale(h);
+    for (var i = 0; i < N; ++i) {
+      for (var j = 0; j < N; ++j) {
+        hess[i * N + j]  = (grad(x.add(Delta.col(j)))[i] - grad(x)[i]) / (2 * h)
+                         + (grad(x.add(Delta.col(i)))[j] - grad(x)[j]) / (2 * h);
+      }
+    }
+    return hess;
+  };
+
+  if (this.mcmc.initialized)
+    this.mcmc.reset(this.mcmc);
   if (this.hasAlgorithm && this.hasTarget) {
     this.visualizer.resize();
     if (this.mcmc.initialized == false)
@@ -75,8 +95,30 @@ window.onload = function() {
   sim = new Simulation();
   sim.visualizer = viz;
   viz.simulation = sim;
-  sim.setAlgorithm(MCMC.algorithmNames[0]);
-  sim.setTarget(MCMC.targetNames[0]);
+
+  var algorithm = MCMC.algorithmNames[0];
+  var target = MCMC.targetNames[0];
+
+  if (window.location.hash != '') {
+    var hash = window.location.hash.substring(1);
+    var tokens = hash.split(',');
+    if (MCMC.algorithmNames.indexOf(tokens[0]) > -1) {
+      algorithm = tokens[0];
+    }
+    if (tokens.length > 1 && MCMC.targetNames.indexOf(tokens[1]) > -1) {
+      target = tokens[1];
+    }
+  }
+
+  function updateHash(sim) {
+    window.location.hash = '#' + sim.algorithm + ',' + sim.target;
+  }
+
+  sim.setAlgorithm(algorithm);
+  sim.setTarget(target);
+
+  updateHash(sim);
+
   sim.mcmc.init(sim.mcmc);
   window.onresize = function() { viz.resize(); };
 
@@ -85,29 +127,32 @@ window.onload = function() {
   var f1 = gui.addFolder('Simulation options');
   f1.add(sim, 'algorithm', MCMC.algorithmNames).name('Algorithm').onChange(function(value) {
     sim.setAlgorithm(value);
+    updateHash(sim);
     gui.removeFolder('Algorithm Options');
     var f = gui.addFolder('Algorithm Options');
     sim.mcmc.attachUI(sim.mcmc, f);
+    f.add(sim.mcmc, 'about').name('About this algorithm...');
     f.open();
   });
   f1.add(sim, 'target', MCMC.targetNames).name('Target distribution').onChange(function(value) {
     sim.setTarget(value);
+    updateHash(sim);
   });
   f1.add(sim, 'autoplay').name('Autoplay');
-  f1.add(sim, 'delay', 0, 1000).name('Autoplay delay (msec)');
-  f1.add(sim, 'step').name('Step forward');
-  f1.add(sim, 'reset').name('Reset chain');
+  f1.add(sim, 'delay', 0, 1000).name('Autoplay delay');
+  f1.add(sim, 'reset').name('Reset');
   f1.open();
 
   var f2 = gui.addFolder('Visualization Options');
   f2.add(viz, 'animateProposal').name('Animate proposal');
-  f2.add(viz, 'showTargetDensity').name('Show target density');
+  f2.add(viz, 'showTargetDensity').name('Show target');
   f2.add(viz, 'showSamples').name('Show samples');
   f2.open();
 
   gui.removeFolder('Algorithm Options');
   var f3 = gui.addFolder('Algorithm Options');
   sim.mcmc.attachUI(sim.mcmc, f3);
+  f3.add(sim.mcmc, 'about').name('About...');
   f3.open();
 
   sim.animate();

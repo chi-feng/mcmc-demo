@@ -4,6 +4,10 @@ MCMC.registerAlgorithm('EfficientNUTS', {
 
   description: 'Efficient No-U-Turn Sampler',
 
+  about: function() {
+    window.open('http://arxiv.org/abs/1111.4246');
+  },
+
   init: function(self) {
     self.dt = 0.1;
     self.Delta_max = 1000;

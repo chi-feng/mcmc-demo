@@ -4,6 +4,10 @@ MCMC.registerAlgorithm('MALA', {
 
   description: 'Metropolis-adjusted Langevin algorithm',
 
+  about: function() {
+    window.open('http://projecteuclid.org/euclid.bj/1178291835');
+  },
+
   init: function(self) {
     self.sigma = 0.5;
   },

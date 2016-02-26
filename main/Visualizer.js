@@ -46,6 +46,11 @@ Visualizer.prototype.resize = function() {
   this.samplesCanvas.height = this.canvas.height;
   this.overlayCanvas.width  = this.canvas.width;
   this.overlayCanvas.height = this.canvas.height;
+
+  this.fontSizePx = (12 * window.devicePixelRatio) | 0;
+  var context = this.canvas.getContext('2d');
+  context.textBaseline = 'top';
+  context.font = '' + this.fontSizePx + 'px Arial';
   this.reset();
 };
 
@@ -82,6 +87,9 @@ Visualizer.prototype.render = function() {
   // draw overlay canvas
   context.globalCompositeOperation = 'multiply';
   context.drawImage(this.overlayCanvas, 0, 0);
+
+  context.fillText(this.simulation.mcmc.description, 5 * window.devicePixelRatio, 5 * window.devicePixelRatio);
+
 };
 
 // transform world-coordinate to pixel coordinate
@@ -190,16 +198,20 @@ Visualizer.prototype.dequeue = function() {
 
   var event = this.queue.shift();
 
+  var last = this.simulation.mcmc.chain.length > 1 ? this.simulation.mcmc.chain[this.simulation.mcmc.chain.length - 2] : this.simulation.mcmc.chain.last();
+
   if (event.type == 'proposal') {
+
     // clear overlay canvas
     var context = this.overlayCanvas.getContext('2d');
     context.clearRect(0, 0, this.canvas.width, this.canvas.height);
     var drawProposalArrow = true;
     var drawProposalCov = true;
+
     // draw initial momentum vector (for Hamiltonian MC)
     if (event.hasOwnProperty('initialMomentum')) {
-      var to = this.simulation.mcmc.chain[this.simulation.mcmc.chain.length - 2].add(event.initialMomentum);
-      this.drawArrow(this.overlayCanvas, {from: this.simulation.mcmc.chain[this.simulation.mcmc.chain.length - 2], to: to, color: this.proposalColor, lw: 1 });
+      var to = last.add(event.initialMomentum);
+      this.drawArrow(this.overlayCanvas, {from: last, to: to, color: this.proposalColor, lw: 1 });
     }
     // draw Hamiltonian MC trajectory or queue animation frames if necessary
     // otherwise, draw arrow from chain.last() to proposal
@@ -232,20 +244,26 @@ Visualizer.prototype.dequeue = function() {
     }
     // draw MALA gradient/proposal offset
     if (event.hasOwnProperty('gradient')) {
-      this.drawArrow(this.overlayCanvas, { from: this.simulation.mcmc.chain[this.simulation.mcmc.chain.length - 2], to: this.simulation.mcmc.chain[this.simulation.mcmc.chain.length - 2].add(event.gradient), color: this.nutsColor, lw: 1 });
-      this.drawArrow(this.overlayCanvas, { from: this.simulation.mcmc.chain[this.simulation.mcmc.chain.length - 2].add(event.gradient), to: event.proposal, color: this.proposalColor, lw: 1.5});
+      this.drawArrow(this.overlayCanvas, { from: last, to: last.add(event.gradient), color: this.nutsColor, lw: 1 });
+      this.drawArrow(this.overlayCanvas, { from: last.add(event.gradient), to: event.proposal, color: this.proposalColor, lw: 1.5});
       if (event.hasOwnProperty('proposalCov')) {
         drawProposalCov = false;
-        this.drawProposalContour(this.overlayCanvas, this.simulation.mcmc.chain[this.simulation.mcmc.chain.length - 2].add(event.gradient), event.proposalCov);
+        this.drawProposalContour(this.overlayCanvas, last.add(event.gradient), event.proposalCov);
       }
     }
     // draw proposal covariance
     if (event.hasOwnProperty('proposalCov') && drawProposalCov) {
-      this.drawProposalContour(this.overlayCanvas, this.simulation.mcmc.chain[this.simulation.mcmc.chain.length - 2], event.proposalCov);
+      var center = event.hasOwnProperty('proposalMean') ? event.proposalMean : last;
+      this.drawProposalContour(this.overlayCanvas, center, event.proposalCov);
+      if (event.hasOwnProperty('proposalMean')) {
+        drawProposalArrow = false;
+        this.drawPath(this.overlayCanvas, { path: [last, center], color: this.proposalColor, lw: 1 });
+        this.drawArrow(this.overlayCanvas, { from: center, to: event.proposal, color: this.proposalColor, lw: 1 });
+      }
     }
     // draw proposal arrow
     if (drawProposalArrow) {
-      this.drawArrow(this.overlayCanvas, {from: this.simulation.mcmc.chain[this.simulation.mcmc.chain.length - 2], to: event.proposal, color: this.proposalColor, lw: 1 });
+      this.drawArrow(this.overlayCanvas, {from: last, to: event.proposal, color: this.proposalColor, lw: 1 });
     }
   }
 
@@ -287,13 +305,13 @@ Visualizer.prototype.dequeue = function() {
   }
 
   if (event.type == 'accept') {
-    this.drawArrow(this.overlayCanvas, { from: this.simulation.mcmc.chain[this.simulation.mcmc.chain.length - 2], to: event.proposal, color: this.acceptColor, lw: 2 });
+    this.drawArrow(this.overlayCanvas, { from: last, to: event.proposal, color: this.acceptColor, lw: 2 });
     this.drawSample(this.samplesCanvas, event.proposal);
   }
 
   if (event.type == 'reject') {
-    this.drawArrow(this.overlayCanvas, { from: this.simulation.mcmc.chain[this.simulation.mcmc.chain.length - 2], to: event.proposal, color: this.rejectColor, lw: 2 });
-    this.drawSample(this.samplesCanvas, this.simulation.mcmc.chain[this.simulation.mcmc.chain.length - 2]);
+    this.drawArrow(this.overlayCanvas, { from: last, to: event.proposal, color: this.rejectColor, lw: 2 });
+    this.drawSample(this.samplesCanvas, last);
   }
 
 };
@@ -306,7 +324,7 @@ Visualizer.prototype.drawProposalContour = function(canvas, last, cov) {
   // get principle components using eigenvalue decomposition
   var eigs = cov.jacobiRotation({maxIter:100, tolerance: 1e-5});
   for (var i = 0; i < 2; ++i)
-    eigs.V.setCol(i, eigs.V.col(i).scale(Math.sqrt(eigs.D[i*2+i])));
+    eigs.V.setCol(i, eigs.V.col(i).scale(Math.sqrt(eigs.D[i * 2 + i])));
   var eigs = [eigs.V.col(0), eigs.V.col(1)];
 
   // get major and minor axes and rotation

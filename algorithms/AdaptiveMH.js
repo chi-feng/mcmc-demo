@@ -4,6 +4,10 @@ MCMC.registerAlgorithm('AdaptiveMH', {
 
   description: 'Adaptive Metropolis-Hastings',
 
+  about: function() {
+    window.open('http://projecteuclid.org/euclid.bj/1080222083');
+  },
+
   init: function(self) {
     self.sigma = 1;
     self.adaptStride = 10;
