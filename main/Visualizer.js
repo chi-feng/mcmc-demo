@@ -356,7 +356,7 @@ Visualizer.prototype.drawProposalContour = function(canvas, last, cov) {
 
 Visualizer.prototype.drawDensityContours = function(logDensity) {
 
-  var nx = 201, ny = 201, nz = 10;
+  var nx = 297, ny = 303, nz = 9;
   var x = linspace(this.xmin - 1, this.xmax + 1, nx);
   var y = linspace(this.ymin - 1, this.ymax + 1, ny);
   var data = [];
@@ -375,7 +375,7 @@ Visualizer.prototype.drawDensityContours = function(logDensity) {
     }
   }
 
-  var z = linspace(min + 0.025 * (max - min), max - 0.05 * (max - min), nz);
+  var z = linspace(min + 0.01 * (max - min), max - 0.02 * (max - min), nz);
   var c = new Conrec;
   c.contour(data, 0, nx - 1, 0, ny - 1, x, y, nz, z);
   var contours = c.contourList();
@@ -385,7 +385,7 @@ Visualizer.prototype.drawDensityContours = function(logDensity) {
     for (var j = 0; j < contours[i].length; ++j)
       contour.push([contours[i][j].x, contours[i][j].y]);
     // this.drawPath(this.densityCanvas, {path:contour, color: 'transparent', fill:'rgba(64,128,192,0.1)'});
-    this.drawPath(this.densityCanvas, {path:contour, color:'#69b', alpha: 0.5 * (i+1) / contours.length + 0.1});
+    this.drawPath(this.densityCanvas, {path:contour, color:'#69b', alpha: 0.4 * (i+1) / contours.length, lw: 2 });
   }
 
 };

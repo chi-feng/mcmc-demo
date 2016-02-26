@@ -9,7 +9,7 @@ MCMC.registerAlgorithm('HamiltonianMC', {
   },
 
   init: function(self) {
-    self.leapfrogSteps = 35;
+    self.leapfrogSteps = 37;
     self.dt = 0.1;
   },
 

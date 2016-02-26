@@ -54,7 +54,7 @@ MCMC.targets['banana'] = {
 MCMC.targetNames.push('donut');
 MCMC.targets['donut'] = {
   radius: 2.6,
-  sigma2: 0.2,
+  sigma2: 0.033,
   logDensity: function(x) {
     var r = x.norm();
     return -Math.pow(r - MCMC.targets.donut.radius, 2) / MCMC.targets.donut.sigma2;
@@ -100,4 +100,28 @@ MCMC.targets['multimodal'] = {
 // fillin to get last element of array
 if (!Array.prototype.last){
   Array.prototype.last = function(){ return this[this.length - 1]; };
+};
+
+
+// Squiggle distribution
+var squiggleDist = new MultivariateNormal(matrix([[0],[0]]), matrix([[2,0.25],[0.25,0.5]]));
+MCMC.targetNames.push('squiggle');
+MCMC.targets['squiggle'] = {
+  logDensity: function(x) {
+    var y = zeros(2, 1);
+    y[0] = x[0];
+    y[1] = x[1] + Math.sin(5 * x[0]);
+    return squiggleDist.logDensity(y);
+  },
+  gradLogDensity: function(x) {
+    var y = zeros(2, 1);
+    y[0] = x[0];
+    y[1] = x[1] + Math.sin(5 * x[0]);
+    var grad = squiggleDist.gradLogDensity(y);
+    var gradx0 = grad[0] + grad[1] * 5 * Math.cos(5 * x[0]);
+    var gradx1 = grad[1];
+    grad[0] = gradx0;
+    grad[1] = gradx1;
+    return grad;
+  }
 };
