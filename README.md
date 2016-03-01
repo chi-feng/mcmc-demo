@@ -1,4 +1,4 @@
-# The Markov-chain Monte Carlo Petting Zoo
+# The Markov-chain Monte Carlo Zoo
 ## List of algorithms
  - [Random Walk Metropolis Hastings](http://chifeng.scripts.mit.edu/stuff/mcmc-demo/#RandomWalkMH,banana) ([source](algorithms/RandomWalkMH.js))
  - [Adaptive Metropolis Hastings](http://chifeng.scripts.mit.edu/stuff/mcmc-demo/#AdaptiveMH,banana) ([source](algorithms/AdaptiveMH.js)) \[1\]
