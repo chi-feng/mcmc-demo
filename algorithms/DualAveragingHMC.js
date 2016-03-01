@@ -12,7 +12,7 @@ MCMC.registerAlgorithm('DualAveragingHMC', {
 
     self.lambda = 1.6;
     self.delta = 0.65;
-    self.M_adapt = 1000;
+    self.M_adapt = 100;
 
     self.joint = function(theta, r) {
       return Math.exp(self.logDensity(theta) - r.norm2() / 2);
@@ -51,6 +51,8 @@ MCMC.registerAlgorithm('DualAveragingHMC', {
     self.gamma = 0.2;
     self.t0 = 10;
     self.kappa = 0.75;
+
+    self.accepted = 0;
   },
 
   attachUI: function(self, folder) {
@@ -76,11 +78,13 @@ MCMC.registerAlgorithm('DualAveragingHMC', {
       r = result.r;
       trajectory.push(theta.copy());
     }
-    visualizer.queue.push({type: 'proposal', proposal: theta, trajectory: trajectory, initialMomentum: r0});
+    var epsilon = ((self.epsilon.last() * 1000) | 0) / 1000;
+    visualizer.queue.push({type: 'proposal', proposal: theta, trajectory: trajectory, initialMomentum: r0, epsilon: epsilon});
     var alpha = Math.min(1, self.joint(theta, r) / self.joint(self.chain.last(), r0));
     if (Math.random() < alpha) {
       self.chain.push(theta);
       visualizer.queue.push({type: 'accept', proposal: theta});
+      self.accepted++;
     } else {
       self.chain.push(self.chain.last().copy());
       visualizer.queue.push({type: 'reject', proposal: theta});
@@ -92,6 +96,8 @@ MCMC.registerAlgorithm('DualAveragingHMC', {
       self.epsilon.push(Math.exp(log_epsilon));
       console.log('self.epsilon.last()', self.epsilon.last());
       self.epsilon_bar.push(Math.exp(Math.pow(m, -self.kappa) * log_epsilon + (1 - Math.pow(m, -self.kappa)) * Math.log(self.epsilon_bar.last())));
+    } else {
+      self.epsilon.push(self.epsilon_bar.last());
     }
   }
 

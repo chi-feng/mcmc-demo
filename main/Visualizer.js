@@ -51,6 +51,9 @@ Visualizer.prototype.resize = function() {
   var context = this.canvas.getContext('2d');
   context.textBaseline = 'top';
   context.font = '' + this.fontSizePx + 'px Arial';
+  context = this.overlayCanvas.getContext('2d');
+  context.textBaseline = 'top';
+  context.font = '' + this.fontSizePx + 'px Arial';
   this.reset();
 };
 
@@ -224,6 +227,14 @@ Visualizer.prototype.dequeue = function() {
       var to = last.add(event.initialMomentum);
       this.drawArrow(this.overlayCanvas, {from: last, to: to, color: this.proposalColor, lw: 1 });
     }
+
+    if (event.hasOwnProperty('epsilon')) {
+      context.fillStyle = '#000';
+      context.fillText('epsilon = ' + event.epsilon, 5 * window.devicePixelRatio, 5 * window.devicePixelRatio + 1.2 * this.fontSizePx);
+      context.fillText('m / M_adapt = ' + this.simulation.mcmc.chain.length + ' / ' + this.simulation.mcmc.M_adapt, 5 * window.devicePixelRatio, 5 * window.devicePixelRatio + 2 * 1.2 * this.fontSizePx);
+      context.fillText('accept rate = ' + ((this.simulation.mcmc.accepted / this.simulation.mcmc.chain.length * 100) | 0) / 100, 5 * window.devicePixelRatio, 5 * window.devicePixelRatio + 3 * 1.2 * this.fontSizePx);
+    }
+
     // draw Hamiltonian MC trajectory or queue animation frames if necessary
     // otherwise, draw arrow from chain.last() to proposal
     if (event.hasOwnProperty('trajectory')) {
@@ -338,6 +349,10 @@ Visualizer.prototype.dequeue = function() {
   if (event.type == 'reject') {
     this.drawArrow(this.overlayCanvas, { from: last, to: event.proposal, color: this.rejectColor, lw: 2 });
     this.drawSample(this.samplesCanvas, last);
+  }
+
+  if (event.type == 'text') {
+    var context = this.overlayCanvas.getContext('2d');
   }
 
 };
