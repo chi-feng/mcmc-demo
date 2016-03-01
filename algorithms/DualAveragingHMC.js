@@ -59,6 +59,9 @@ MCMC.registerAlgorithm('DualAveragingHMC', {
     folder.add(self, 'lambda', 0.1, 2).step(0.1).name('&lambda; = &epsilon;L').onChange(function(value) {
       sim.reset();
     });
+    folder.add(self, 'delta', 0.1, 1).step(0.1).name('&delta;').onChange(function(value) {
+      sim.reset();
+    });
     folder.open();
   },
 
@@ -94,7 +97,6 @@ MCMC.registerAlgorithm('DualAveragingHMC', {
       self.H_bar.push((1 - 1 / (m + self.t0)) * self.H_bar.last() + (1 / (m + self.t0)) * (self.delta - alpha));
       var log_epsilon = self.mu - Math.sqrt(m) / self.gamma * self.H_bar.last();
       self.epsilon.push(Math.exp(log_epsilon));
-      console.log('self.epsilon.last()', self.epsilon.last());
       self.epsilon_bar.push(Math.exp(Math.pow(m, -self.kappa) * log_epsilon + (1 - Math.pow(m, -self.kappa)) * Math.log(self.epsilon_bar.last())));
     } else {
       self.epsilon.push(self.epsilon_bar.last());
