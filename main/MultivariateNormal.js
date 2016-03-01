@@ -24,9 +24,10 @@ function MultivariateNormal(mean, cov) {
   } else {
     this.mean = mean;
     this.dim = mean.rows;
-    this.constant = -0.5 * Math.log(2.0 * Math.PI) * this.dim;
     this.setCovariance(cov);
   }
+  this.constant = -0.5 * Math.log(2.0 * Math.PI) * this.dim;
+  this.logDet = this.covL.diagonal().map(Math.log).sum();
 }
 
 MultivariateNormal.getNormal = function() {
@@ -64,4 +65,12 @@ MultivariateNormal.prototype.gradLogDensity = function(x) {
   var diff = x.subtract(this.mean);
   // return this.cov.llt_solve(diff);
   return this.covL.bsolve_inplace(this.covL.fsolve_inplace(diff), {transpose: true}).scale(-1);
+};
+
+MultivariateNormal.prototype.toString = function() {
+  return 'mean: ' + this.mean.transpose().toString() +
+    '\ncov:  \n' + this.cov.toString() +
+    '\ncovL: \n' + this.covL.toString() +
+    '\nlogDet: ' + this.logDet;
+
 };

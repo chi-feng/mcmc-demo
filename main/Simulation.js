@@ -140,6 +140,7 @@ window.onload = function() {
   });
   f1.add(sim, 'autoplay').name('Autoplay');
   f1.add(sim, 'delay', 0, 1000).name('Autoplay delay');
+  f1.add(sim, 'step').name('Step');
   f1.add(sim, 'reset').name('Reset');
   f1.open();
 

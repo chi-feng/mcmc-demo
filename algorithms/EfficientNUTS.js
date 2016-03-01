@@ -18,7 +18,7 @@ MCMC.registerAlgorithm('EfficientNUTS', {
   },
 
   attachUI: function(self, folder) {
-    folder.add(self, 'dt', 0.025, 0.25).step(0.025).name('Leapfrog &Delta;t');
+    folder.add(self, 'dt', 0.025, 0.6).step(0.025).name('Leapfrog &Delta;t');
     folder.open();
   },
 

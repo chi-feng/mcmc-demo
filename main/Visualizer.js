@@ -15,7 +15,7 @@ function Visualizer(canvas) {
   this.tweening          = false;
 
   this.arrowSize       = 10;
-  this.proposalColor   = '#ccc';
+  this.proposalColor   = '#999';
   this.trajectoryColor = '#333';
   this.acceptColor     = '#4c4';
   this.rejectColor     = '#f00';
@@ -129,11 +129,22 @@ Visualizer.prototype.drawPath = function(canvas, options) {
   var offset = (options.offset) ? options.offset : 0;
   var path = options.path;
   var start = this.transform(path[0]);
+  var quadratic = (options.quadratic) ? options.quadratic : false;
   context.beginPath()
   context.moveTo(start[0], start[1]);
-  for (var i = 1; i < path.length - offset; ++i) {
-    var point = this.transform(path[i]);
-    context.lineTo(point[0], point[1]);
+  if (quadratic){
+    for (var i = 1; i < path.length - offset - 1; ++i) {
+      var start = this.transform(path[i-1]);
+      var mid = this.transform(path[i]);
+      var end = this.transform(path[i+1]);
+      context.moveTo(start[0], start[1]);
+      context.quadraticCurveTo(mid[0], mid[1], end[0], end[1]);
+    }
+  } else {
+    for (var i = 1; i < path.length - offset; ++i) {
+      var point = this.transform(path[i]);
+      context.lineTo(point[0], point[1]);
+    }
   }
   context.stroke();
   if (options.fill) {
@@ -222,6 +233,9 @@ Visualizer.prototype.dequeue = function() {
         this.queue.push({type: 'trajectory-animation-end', trajectory: event.trajectory});
       } else {
         this.drawPath(this.overlayCanvas, { path: event.trajectory, color: this.trajectoryColor, lw: 1 });
+        for (var i = 0; i < event.trajectory.length - 1; ++i) {
+          this.drawCircle(this.overlayCanvas, { fill: this.trajectoryColor, center: event.trajectory[i], radius: 0.015, lw: 0});
+        }
         this.drawArrow(this.overlayCanvas, {from: event.trajectory[event.trajectory.length - 2], to: event.trajectory.last(), color: this.trajectoryColor, lw: 1 });
       }
       drawProposalArrow = false;
@@ -236,8 +250,8 @@ Visualizer.prototype.dequeue = function() {
       } else {
         for (var i = 0; i < event.nuts_trajectory.length; ++i) {
           if (event.nuts_trajectory[i].type == 'accept') {
-            this.drawPath(this.overlayCanvas, { path: [event.nuts_trajectory[i].from, event.nuts_trajectory[i].to], color: this.proposalColor, lw: 1});
-            this.drawCircle(this.overlayCanvas, { fill: this.proposalColor, center: event.nuts_trajectory[i].to, radius: 0.015, lw: 0});
+            this.drawPath(this.overlayCanvas, { path: [event.nuts_trajectory[i].from, event.nuts_trajectory[i].to], color: this.nutsColor, lw: 1});
+            this.drawCircle(this.overlayCanvas, { fill: this.nutsColor, center: event.nuts_trajectory[i].to, radius: 0.015, lw: 0});
           }
         }
       }
@@ -261,6 +275,18 @@ Visualizer.prototype.dequeue = function() {
         this.drawArrow(this.overlayCanvas, { from: center, to: event.proposal, color: this.proposalColor, lw: 1 });
       }
     }
+
+    // draw proposal covariance
+    if (event.hasOwnProperty('revProposalCov') && drawProposalCov) {
+      var center = event.hasOwnProperty('revProposalMean') ? event.revProposalMean : last;
+      this.drawProposalContour(this.overlayCanvas, center, event.revProposalCov);
+      if (event.hasOwnProperty('revProposalMean')) {
+        drawProposalArrow = false;
+        this.drawPath(this.overlayCanvas, { path: [event.proposal, event.revProposalMean], color: '#00f', lw: 1 });
+        this.drawArrow(this.overlayCanvas, { from: center, to: last, color: '#00f', lw: 1 });
+      }
+    }
+
     // draw proposal arrow
     if (drawProposalArrow) {
       this.drawArrow(this.overlayCanvas, {from: last, to: event.proposal, color: this.proposalColor, lw: 1 });
