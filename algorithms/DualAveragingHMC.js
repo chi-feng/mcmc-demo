@@ -14,6 +14,8 @@ MCMC.registerAlgorithm('DualAveragingHMC', {
     self.delta = 0.65;
     self.M_adapt = 100;
 
+    viz.animateProposal = false;
+
     self.joint = function(theta, r) {
       return Math.exp(self.logDensity(theta) - r.norm2() / 2);
     };
@@ -79,7 +81,7 @@ MCMC.registerAlgorithm('DualAveragingHMC', {
       trajectory.push(theta.copy());
     }
     var epsilon = ((self.epsilon.last() * 1000) | 0) / 1000;
-    visualizer.queue.push({type: 'proposal', proposal: theta, trajectory: trajectory, initialMomentum: r0, epsilon: epsilon});
+    visualizer.queue.push({type: 'proposal', proposal: theta, trajectory: trajectory, initialMomentum: r0, epsilon: epsilon, alpha:self.delta - self.H_bar.last() });
     var alpha = Math.min(1, self.joint(theta, r) / self.joint(self.chain.last(), r0));
     if (Math.random() < alpha) {
       self.chain.push(theta);

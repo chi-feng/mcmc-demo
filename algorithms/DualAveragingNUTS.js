@@ -130,21 +130,21 @@ MCMC.registerAlgorithm('DualAveragingNUTS', {
       n = n + n_;
       j = j + 1;
     }
+    var epsilon = ((self.epsilon.last() * 1000) | 0) / 1000;
+    visualizer.queue.push({type: 'proposal', proposal: q, nuts_trajectory: trajectory, initialMomentum: p0, epsilon: epsilon, alpha:self.delta - self.H_bar.last() });
     self.chain.push(q.copy());
 
     var m = self.chain.length;
     if (m <= self.M_adapt) {
       self.H_bar.push((1 - 1 / (m + self.t0)) * self.H_bar.last() + (1 / (m + self.t0)) * (self.delta - alpha / n_alpha));
       var log_epsilon = self.mu - Math.sqrt(m) / self.gamma * self.H_bar.last();
+      log_epsilon = Math.max(log_epsilon, -4.5);
       self.epsilon.push(Math.exp(log_epsilon));
       self.epsilon_bar.push(Math.exp(Math.pow(m, -self.kappa) * log_epsilon + (1 - Math.pow(m, -self.kappa)) * Math.log(self.epsilon_bar.last())));
     } else {
       self.epsilon.push(self.epsilon_bar.last());
     }
 
-    console.log(alpha / n_alpha);
-
-    visualizer.queue.push({type: 'proposal', proposal: q, nuts_trajectory: trajectory, initialMomentum: p0});
     visualizer.queue.push({type: 'accept', proposal: q});
   }
 

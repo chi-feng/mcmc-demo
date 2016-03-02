@@ -310,7 +310,8 @@ Visualizer.prototype.dequeue = function() {
       context.fillStyle = '#000';
       context.fillText('epsilon = ' + event.epsilon, 5 * window.devicePixelRatio, 5 * window.devicePixelRatio + 1.2 * this.fontSizePx);
       context.fillText('m / M_adapt = ' + this.simulation.mcmc.chain.length + ' / ' + this.simulation.mcmc.M_adapt, 5 * window.devicePixelRatio, 5 * window.devicePixelRatio + 2 * 1.2 * this.fontSizePx);
-      context.fillText('accept rate = ' + ((this.simulation.mcmc.accepted / this.simulation.mcmc.chain.length * 100) | 0) / 100, 5 * window.devicePixelRatio, 5 * window.devicePixelRatio + 3 * 1.2 * this.fontSizePx);
+      if (event.hasOwnProperty('alpha'))
+        context.fillText('alpha = ' + ((event.alpha * 100) | 0) / 100, 5 * window.devicePixelRatio, 5 * window.devicePixelRatio + 3 * 1.2 * this.fontSizePx);
     }
 
     // draw Hamiltonian MC trajectory or queue animation frames if necessary
