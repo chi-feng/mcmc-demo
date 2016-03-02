@@ -34,7 +34,7 @@ MCMC.registerAlgorithm('DualAveragingHMC', {
         epsilon = Math.pow(2, a) * epsilon;
         result = self.leapFrog(result.theta, result.r, epsilon);
       }
-      return Math.max(1e-4, epsilon);
+      return Math.max(1e-3, epsilon);
     };
   },
 
