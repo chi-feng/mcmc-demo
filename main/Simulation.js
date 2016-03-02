@@ -20,11 +20,11 @@ Simulation.prototype.setAlgorithm = function(algorithmName) {
   this.mcmc.about = MCMC.algorithms[algorithmName].about;
   document.getElementById('info').innerHTML = this.mcmc.description;
   if (this.hasAlgorithm && this.hasTarget) {
-    this.visualizer.resize();
     if (this.mcmc.initialized == false)
       this.mcmc.init(this.mcmc);
     this.mcmc.reset(this.mcmc);
     this.mcmc.initialized = true;
+    this.visualizer.resize();
   }
 };
 
@@ -51,15 +51,68 @@ Simulation.prototype.setTarget = function(targetName) {
     return hess;
   };
 
+  this.computeContours(this.mcmc.logDensity);
+
   if (this.mcmc.initialized)
     this.mcmc.reset(this.mcmc);
   if (this.hasAlgorithm && this.hasTarget) {
-    this.visualizer.resize();
     if (this.mcmc.initialized == false)
       this.mcmc.init(this.mcmc);
     this.mcmc.reset(this.mcmc);
     this.mcmc.initialized = true;
+    this.visualizer.resize();
   }
+};
+
+Simulation.prototype.computeContours = function(logDensity) {
+
+  // get contours
+  var nx = 301, ny = 301, nz = 7;
+  var x = linspace(-6, 6, nx);
+  var y = linspace(-6, 6, ny);
+  var data = [];
+  var point = zeros(2, 1);
+  var min = 1e10, max = 0;
+  for (var i = 0; i < nx; ++i) {
+    data.push([]);
+    point[0] = x[i];
+    for (var j = 0; j < ny; ++j) {
+      point[1] = y[j];
+      var val = Math.exp(logDensity(point));
+      data[i].push(val);
+      if (val > max) max = val;
+      if (val < min) min = val;
+    }
+  }
+  var z = linspace(min + 0.01 * (max - min), max - 0.02 * (max - min), nz);
+  var c = new Conrec;
+  c.contour(data, 0, nx - 1, 0, ny - 1, x, y, nz, z);
+  var contours = c.contourList();
+  this.mcmc.contours = [ ];
+  for (var i = 0; i < contours.length; ++i) {
+    var contour = [];
+    for (var j = 0; j < contours[i].length; ++j)
+      contour.push([contours[i][j].x, contours[i][j].y]);
+    this.mcmc.contours.push(contour);
+  }
+
+  // numerically integrate to get marginal densities
+  this.mcmc.xgrid = x;
+  this.mcmc.ygrid = y;
+  this.mcmc.marginals = [zeros(nx), zeros(ny)];
+  for (var i = 0; i < nx; ++i) {
+    for (var j = 0; j < ny; ++j)
+      this.mcmc.marginals[0][i] += data[i][j];
+    this.mcmc.marginals[0][i];
+  }
+  this.mcmc.marginals[0] = this.mcmc.marginals[0].scale(1.0 / this.mcmc.marginals[0].maxCoeff());
+  for (var j = 0; j < ny; ++j) {
+    for (var i = 0; i < nx; ++i)
+      this.mcmc.marginals[1][j] += data[i][j];
+    this.mcmc.marginals[1][j];
+  }
+  this.mcmc.marginals[1] = this.mcmc.marginals[1].scale(1.0 / this.mcmc.marginals[1].maxCoeff());
+
 };
 
 Simulation.prototype.reset = function() {

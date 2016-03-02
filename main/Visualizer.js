@@ -23,6 +23,7 @@ function Visualizer(canvas, xHistCanvas, yHistCanvas) {
   this.acceptColor     = '#4c4';
   this.rejectColor     = '#f00';
   this.nutsColor       = '#09c';
+  this.contourColor    = '#69b';
 
   this.histogramRatio = 0.2;
   this.histBins = 50;
@@ -89,7 +90,7 @@ Visualizer.prototype.reset = function() {
   this.overlayCanvas.getContext('2d').clearRect(0, 0, this.overlayCanvas.width, this.overlayCanvas.height);
   this.canvas.getContext('2d').clearRect(0, 0, this.canvas.width, this.canvas.height);
   // redraw density contours
-  this.drawDensityContours(this.simulation.mcmc.logDensity);
+  this.drawDensityContours();
   // redraw histogram
   this.drawHistograms();
   this.render();
@@ -179,6 +180,33 @@ Visualizer.prototype.drawHistograms = function(options) {
     var x = 1.0 / ymax * this.yhist[i] * this.yHistCanvas.width;
     context.fillRect(0, y, x, -dy);
   }
+
+  // draw marginals
+  var context = this.xHistCanvas.getContext('2d');
+  context.strokeStyle = this.histFillStyle;
+  context.lineWidth = 1 * window.devicePixelRatio;
+  var xgrid = this.simulation.mcmc.xgrid;
+  var xmarg = this.simulation.mcmc.marginals[0];
+  context.beginPath();
+  context.moveTo(0, this.xHistCanvas.height);
+  for (var i = 1; i < xgrid.length; ++i) {
+    var x = xgrid[i] * this.scale + this.origin[0];
+    context.lineTo(x, (1 - 0.97 * xmarg[i]) * this.xHistCanvas.height);
+  }
+  context.stroke();
+
+  var context = this.yHistCanvas.getContext('2d');
+  context.strokeStyle = this.histFillStyle;
+  context.lineWidth = 1 * window.devicePixelRatio;
+  var ygrid = this.simulation.mcmc.ygrid;
+  var ymarg = this.simulation.mcmc.marginals[1];
+  context.beginPath();
+  context.moveTo(0, 0);
+  for (var i = 1; i < xgrid.length; ++i) {
+    var y = this.origin[1] - this.scale * ygrid[i];
+    context.lineTo(ymarg[i] * this.yHistCanvas.width * 0.97, y);
+  }
+  context.stroke();
 };
 
 Visualizer.prototype.drawCircle = function(canvas, options) {
@@ -459,13 +487,6 @@ Visualizer.prototype.drawProposalContour = function(canvas, last, cov) {
   context.ellipse(center[0], center[1], 2 * a * this.scale, 2 * b * this.scale, angle, 0, 2 * Math.PI, false);
   context.stroke();
 
-  // shaded contour
-  // var gradient = context.createRadialGradient(center[0], center[1], 0, center[0], center[1], Math.max(2 * a * this.scale, 2 * b * this.scale));
-  // gradient.addColorStop(0.2, "#ccc");
-  // gradient.addColorStop(1, "#fff");
-  // context.fillStyle = gradient;
-  // context.fill();
-
   context.beginPath();
   context.strokeStyle = '#999';
   context.ellipse(center[0], center[1], a * this.scale, b * this.scale, angle, 0, 2 * Math.PI, false);
@@ -476,38 +497,10 @@ Visualizer.prototype.drawProposalContour = function(canvas, last, cov) {
   // this.drawArrow(canvas, { from: last, to: last.add(eigs[1]), color: 'rgba(192,192,192,' +  this.alpha + ')', lw: 1 });
 };
 
-Visualizer.prototype.drawDensityContours = function(logDensity) {
-
-  var nx = 297, ny = 303, nz = 9;
-  var x = linspace(this.xmin - 1, this.xmax + 1, nx);
-  var y = linspace(this.ymin - 1, this.ymax + 1, ny);
-  var data = [];
-  var point = zeros(2,1);
-
-  var min = 1e10, max = 0;
-  for (var i = 0; i < nx; ++i) {
-    data.push([]);
-    point[0] = x[i];
-    for (var j = 0; j < ny; ++j) {
-      point[1] = y[j];
-      var val = Math.exp(logDensity(point));
-      data[i].push(val);
-      if (val > max) max = val;
-      if (val < min) min = val;
-    }
+Visualizer.prototype.drawDensityContours = function() {
+  if (!this.simulation.mcmc.initialized) return;
+  for (var i = 0; i < this.simulation.mcmc.contours.length; ++i) {
+    var alpha = 0.4 * (i+1) / this.simulation.mcmc.contours.length;
+    this.drawPath(this.densityCanvas, {path:this.simulation.mcmc.contours[i], color: this.contourColor, alpha: alpha, lw: 2 });
   }
-
-  var z = linspace(min + 0.01 * (max - min), max - 0.02 * (max - min), nz);
-  var c = new Conrec;
-  c.contour(data, 0, nx - 1, 0, ny - 1, x, y, nz, z);
-  var contours = c.contourList();
-
-  for (var i = 0; i < contours.length; ++i) {
-    var contour = [];
-    for (var j = 0; j < contours[i].length; ++j)
-      contour.push([contours[i][j].x, contours[i][j].y]);
-    // this.drawPath(this.densityCanvas, {path:contour, color: 'transparent', fill:'rgba(64,128,192,0.1)'});
-    this.drawPath(this.densityCanvas, {path:contour, color:'#69b', alpha: 0.4 * (i+1) / contours.length, lw: 2 });
-  }
-
 };
