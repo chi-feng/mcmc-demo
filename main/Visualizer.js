@@ -284,7 +284,7 @@ Visualizer.prototype.drawArrow = function(canvas, options) {
 Visualizer.prototype.drawSample = function(canvas, center) {
   var context = canvas.getContext('2d');
   context.globalCompositeOperation = 'multiply';
-  this.drawCircle(canvas, { fill: 'rgb(216,216,216)', center: center, radius: 0.015, lw: 0});
+  this.drawCircle(canvas, { fill: 'rgb(216,216,216)', center: center, radius: 0.02, lw: 0});
   context.globalCompositeOperation = 'source-over';
 };
 
@@ -352,7 +352,7 @@ Visualizer.prototype.dequeue = function() {
       } else {
         this.drawPath(this.overlayCanvas, { path: event.trajectory, color: this.trajectoryColor, lw: 1 });
         for (var i = 0; i < event.trajectory.length - 1; ++i) {
-          this.drawCircle(this.overlayCanvas, { fill: this.trajectoryColor, center: event.trajectory[i], radius: 0.015, lw: 0});
+          this.drawCircle(this.overlayCanvas, { fill: this.trajectoryColor, center: event.trajectory[i], radius: 0.02, lw: 0});
         }
         this.drawArrow(this.overlayCanvas, {from: event.trajectory[event.trajectory.length - 2], to: event.trajectory.last(), color: this.trajectoryColor, lw: 1 });
       }
@@ -367,10 +367,10 @@ Visualizer.prototype.dequeue = function() {
         this.queue.push({type: 'nuts-animation-end', trajectory: event.nuts_trajectory});
       } else {
         for (var i = 0; i < event.nuts_trajectory.length; ++i) {
-          if (event.nuts_trajectory[i].type == 'accept') {
-            this.drawPath(this.overlayCanvas, { path: [event.nuts_trajectory[i].from, event.nuts_trajectory[i].to], color: this.nutsColor, lw: 1});
-            this.drawCircle(this.overlayCanvas, { fill: this.nutsColor, center: event.nuts_trajectory[i].to, radius: 0.015, lw: 0});
-          }
+          var color = (event.nuts_trajectory[i].type == 'accept') ? this.nutsColor : '#f00';
+          this.drawPath(this.overlayCanvas, { path: [event.nuts_trajectory[i].from, event.nuts_trajectory[i].to], color: color, lw: 1});
+          if (event.nuts_trajectory[i].type == 'accept')
+            this.drawCircle(this.overlayCanvas, { fill: this.nutsColor, center: event.nuts_trajectory[i].to, radius: 0.02, lw: 0});
         }
       }
     }
@@ -417,7 +417,7 @@ Visualizer.prototype.dequeue = function() {
     var path = [event.trajectory[event.offset], event.trajectory[event.offset + 1]];
     this.drawPath(this.overlayCanvas, { path: path, color: this.trajectoryColor, lw: 1});
     // this.drawArrow(this.overlayCanvas, {from: event.trajectory[event.offset], to: event.trajectory[event.offset + 1], color: this.trajectoryColor, lw: 0.5, arrowScale: 0.8, alpha: 0.8 });
-    this.drawCircle(this.overlayCanvas, { fill: this.trajectoryColor, center: event.trajectory[event.offset + 1], radius: 0.015, lw: 0});
+    this.drawCircle(this.overlayCanvas, { fill: this.trajectoryColor, center: event.trajectory[event.offset + 1], radius: 0.02, lw: 0});
   }
 
   if (event.type == 'trajectory-animation-end') {
@@ -432,7 +432,7 @@ Visualizer.prototype.dequeue = function() {
       var path = [event.trajectory[event.offset].from, event.trajectory[event.offset].to];
       var color = (event.trajectory[event.offset].type == 'accept') ? this.nutsColor : '#f00';
       this.drawPath(this.overlayCanvas, { path: path, color: color, lw: (type == 'accept') ? 1 : 0.5});
-      this.drawCircle(this.overlayCanvas, { color: color, center: event.trajectory[event.offset].to, radius: 0.015, lw: 0.5});
+      this.drawCircle(this.overlayCanvas, { color: color, center: event.trajectory[event.offset].to, radius: 0.02, lw: 0.5});
     } else if (type == 'left' || type == 'right') {
       this.nutsColor = (type == 'right') ? '#09c' : '#66f';
       var path = [event.trajectory[event.offset+1].from, event.trajectory[event.offset+1].to];
@@ -499,8 +499,25 @@ Visualizer.prototype.drawProposalContour = function(canvas, last, cov) {
 
 Visualizer.prototype.drawDensityContours = function() {
   if (!this.simulation.mcmc.initialized) return;
+
   for (var i = 0; i < this.simulation.mcmc.contours.length; ++i) {
-    var alpha = 0.4 * (i+1) / this.simulation.mcmc.contours.length;
-    this.drawPath(this.densityCanvas, {path:this.simulation.mcmc.contours[i], color: this.contourColor, alpha: alpha, lw: 2 });
+    var alpha = 0.5 * (i+1) / this.simulation.mcmc.contours.length;
+    this.drawPath(this.densityCanvas, {path:this.simulation.mcmc.contours[i], color: this.contourColor, alpha: alpha, lw: 1 });
   }
+
+  var image = this.simulation.mcmc.densityCanvas;
+  var xgrid = this.simulation.mcmc.xgrid;
+  var ygrid = this.simulation.mcmc.ygrid;
+  var nx = xgrid.length;
+  var ny = ygrid.length;
+  // need to get bounds in (nx, ny) space
+  var sx = (this.xmin - xgrid[0]) / (xgrid[nx-1] - xgrid[0]) * nx | 0;
+  var sy = (this.ymin - ygrid[0]) / (ygrid[ny-1] - ygrid[0]) * ny | 0;
+  var sWidth = (this.xmax - this.xmin) / (xgrid[nx-1] - xgrid[0]) * nx | 0;
+  var sHeight = (this.ymax - this.ymin) / (ygrid[ny-1] - ygrid[0]) * ny | 0;
+
+  var context = this.densityCanvas.getContext('2d');
+  context.globalAlpha = 0.5;
+  context.drawImage(image, sx, sy, sWidth, sHeight, 0, 0, this.densityCanvas.width, this.densityCanvas.height);
+
 };

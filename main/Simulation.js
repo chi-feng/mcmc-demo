@@ -67,7 +67,7 @@ Simulation.prototype.setTarget = function(targetName) {
 Simulation.prototype.computeContours = function(logDensity) {
 
   // get contours
-  var nx = 301, ny = 301, nz = 7;
+  var nx = 256, ny = 256, nz = 7;
   var x = linspace(-6, 6, nx);
   var y = linspace(-6, 6, ny);
   var data = [];
@@ -89,6 +89,8 @@ Simulation.prototype.computeContours = function(logDensity) {
   c.contour(data, 0, nx - 1, 0, ny - 1, x, y, nz, z);
   var contours = c.contourList();
   this.mcmc.contours = [ ];
+  this.mcmc.contourData = data;
+  this.mcmc.contourLevels = z;
   for (var i = 0; i < contours.length; ++i) {
     var contour = [];
     for (var j = 0; j < contours[i].length; ++j)
@@ -113,6 +115,23 @@ Simulation.prototype.computeContours = function(logDensity) {
   }
   this.mcmc.marginals[1] = this.mcmc.marginals[1].scale(1.0 / this.mcmc.marginals[1].maxCoeff());
 
+  var buffer = document.createElement("canvas");
+  buffer.width = nx;
+  buffer.height = ny;
+  var context = buffer.getContext("2d");
+  var image = context.createImageData(nx, ny);
+  for (var j = 0; j < ny; ++j) {
+    for (var i = 0; i < nx; ++i) {
+      var base = 4 * ((ny - 1 - j) * nx + i);
+      var value = Math.sqrt((data[i][j] - min) / (max - min)) * 255;
+      image.data[base] = 102;
+      image.data[base + 1] = 153;
+      image.data[base + 2] = 187;
+      image.data[base + 3] = value | 0;
+    }
+  }
+  context.putImageData(image, 0, 0);
+  this.mcmc.densityCanvas = buffer;
 };
 
 Simulation.prototype.reset = function() {
