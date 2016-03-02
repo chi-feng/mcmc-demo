@@ -3,19 +3,22 @@
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
   <title>MCMC Zoo</title>
+  <script src="lib/dat.gui.min.js"></script>
+  <script src="lib/conrec.min.js"></script>
+  <script src="lib/canvas-5-polyfill.js"></script>
+  <script src="lib/linalg.core.js"></script>
   <style>
   html, body { padding:0; margin:0; width:100%; height:100%; }
   body { font-family: Arial, sans-serif; }
-  #info { display: inline-block; position: fixed; bottom:5px; left:5px; }
+  #github { display: inline-block; position: fixed; bottom:5px; left:5px; }
+  #info { display: inline-block; position: fixed; top:5px; left:5px; }
+  .dg {}
+  .dg,.dg li.save-row .button{text-shadow:none!important}.dg.main.taller-than-window .close-button{border-top:1px solid #ddd}.dg.main .close-button{background-color:#eee}.dg.main .close-button:hover{background-color:#ddd}.dg{color:#555}.dg.main::-webkit-scrollbar{background:#fafafa}.dg.main::-webkit-scrollbar-thumb{background:#bbb}.dg li:not(.folder){background:rgba(240,240,240,0.6);border-bottom:1px solid rgba(200,200,200,0.5)}.dg li.title{background:url(data:image/gif;base64,R0lGODlhBQAFAJEAAP////Pz8////////yH5BAEAAAIALAAAAAAFAAUAAAIIlI+hKgFxoCgAOw==) 6px 10px no-repeat rgba(230,230,230,0.7);}.dg .cr.boolean:hover,.dg .cr.function:hover{background:#fff}.dg .c input[type=text]{background:#e9e9e9}.dg .c input[type=text]:hover{background:#eee}.dg .c input[type=text]:focus{background:#eee;color:#555}.dg .c .slider{background:#e9e9e9}.dg .c .slider:hover{background:#eee}
   </style>
 </head>
 <body>
-<canvas id="visualizer" width="100%" height="100%"></canvas>
-<div id="info"><a href="https://github.com/chi-feng/mcmc-demo">View on Github</a></div>
-<script src="lib/dat.gui.min.js"></script>
-<script src="lib/conrec.min.js"></script>
-<script src="lib/canvas-5-polyfill.js"></script>
-<script src="lib/linalg.core.js"></script>
+<div id="info"></div>
+<canvas id="plotCanvas" width="100%" height="100%"></canvas>
 <script src="main/MultivariateNormal.js"></script>
 <script src="main/MCMC.js"></script>
 <script src="main/Simulation.js"></script>

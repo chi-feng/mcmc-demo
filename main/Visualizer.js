@@ -1,8 +1,10 @@
 'use strict';
 
-function Visualizer(canvas) {
+function Visualizer(canvas, xHistCanvas, yHistCanvas) {
 
   this.canvas = canvas;
+  this.xHistCanvas = xHistCanvas;
+  this.yHistCanvas = yHistCanvas;
 
   this.queue = []; // events for visualization
 
@@ -13,6 +15,7 @@ function Visualizer(canvas) {
   this.showTargetDensity = true;
   this.animateProposal   = true;
   this.tweening          = false;
+  this.showHistograms    = true;
 
   this.arrowSize       = 10;
   this.proposalColor   = '#999';
@@ -21,23 +24,41 @@ function Visualizer(canvas) {
   this.rejectColor     = '#f00';
   this.nutsColor       = '#09c';
 
+  this.histogramRatio = 0.2;
+  this.histBins = 50;
+  this.histFillStyle   = '#69b';
+
   // offscreen canvases to avoid expensive redraws
   this.densityCanvas = document.createElement('canvas');
   this.samplesCanvas = document.createElement('canvas');
   this.overlayCanvas = document.createElement('canvas');
+  this.xHistCanvas = document.createElement('canvas');
+  this.yHistCanvas = document.createElement('canvas');
 
 }
 
 Visualizer.prototype.resize = function() {
+
+  var height = document.body.clientHeight;
+  var width  = document.body.clientWidth;
+
+  var histogramSize = Math.min(height, width) * this.histogramRatio;
+
   // resize canvas to fit window and scale by devicePixelRatio for HiDPI displays
-  this.canvas.width      = document.body.clientWidth  * window.devicePixelRatio;
-  this.canvas.height     = document.body.clientHeight * window.devicePixelRatio;
-  this.canvas.style.zoom = 1 / window.devicePixelRatio;
+  this.canvas.width           = document.body.clientWidth * window.devicePixelRatio;
+  this.canvas.height          = document.body.clientHeight * window.devicePixelRatio;
+  this.canvas.style.zoom      = 1 / window.devicePixelRatio;
+
+  this.xHistCanvas.width      = this.canvas.width;
+  this.xHistCanvas.height     = histogramSize * window.devicePixelRatio;
+  this.yHistCanvas.width      = histogramSize * window.devicePixelRatio;
+  this.yHistCanvas.height     = this.canvas.height;
+
   // set ymin, ymax assuming equal aspect ratio
   this.ymin = this.xmin * this.canvas.height / this.canvas.width;
   this.ymax = this.xmax * this.canvas.height / this.canvas.width;
   // scale and origin (location of 0, 0)
-  this.scale = this.canvas.width / (this.xmax - this.xmin);
+  this.scale = (width > height) ? this.canvas.width / (this.xmax - this.xmin) : this.canvas.height / (this.ymax - this.ymin);
   this.origin = new Float64Array([this.canvas.width / 2, this.canvas.height / 2 + this.canvas.height / (this.ymax - this.ymin) * (this.ymax + this.ymin) / 2]);
   // resize offscreen canvases
   this.densityCanvas.width  = this.canvas.width;
@@ -63,12 +84,14 @@ Visualizer.prototype.reset = function() {
   // stop tweening
   this.tweening = false;
   // clear offscreen and onscreen canvases
-  this.densityCanvas.getContext('2d').clearRect(0, 0, this.canvas.width, this.canvas.height);
-  this.samplesCanvas.getContext('2d').clearRect(0, 0, this.canvas.width, this.canvas.height);
-  this.overlayCanvas.getContext('2d').clearRect(0, 0, this.canvas.width, this.canvas.height);
+  this.densityCanvas.getContext('2d').clearRect(0, 0, this.densityCanvas.width, this.densityCanvas.height);
+  this.samplesCanvas.getContext('2d').clearRect(0, 0, this.samplesCanvas.width, this.samplesCanvas.height);
+  this.overlayCanvas.getContext('2d').clearRect(0, 0, this.overlayCanvas.width, this.overlayCanvas.height);
   this.canvas.getContext('2d').clearRect(0, 0, this.canvas.width, this.canvas.height);
   // redraw density contours
   this.drawDensityContours(this.simulation.mcmc.logDensity);
+  // redraw histogram
+  this.drawHistograms();
   this.render();
 };
 
@@ -82,17 +105,18 @@ Visualizer.prototype.render = function() {
   if (this.showTargetDensity) {
     context.drawImage(this.densityCanvas, 0, 0);
   }
+  context.globalCompositeOperation = 'multiply';
   // draw samples canvas
   if (this.showSamples) {
-    context.globalCompositeOperation = 'multiply';
     context.drawImage(this.samplesCanvas, 0, 0);
   }
+  // draw histogram canvases
+  if (this.showHistograms) {
+    context.drawImage(this.xHistCanvas, 0, this.canvas.height - this.xHistCanvas.height);
+    context.drawImage(this.yHistCanvas, 0, 0);
+  }
   // draw overlay canvas
-  context.globalCompositeOperation = 'multiply';
   context.drawImage(this.overlayCanvas, 0, 0);
-
-  context.fillText(this.simulation.mcmc.description, 5 * window.devicePixelRatio, 5 * window.devicePixelRatio);
-
 };
 
 // transform world-coordinate to pixel coordinate
@@ -101,6 +125,60 @@ Visualizer.prototype.transform = function(x) {
   transformed[0] = x[0] * this.scale + this.origin[0];
   transformed[1] = this.origin[1] - this.scale * x[1];
   return transformed;
+};
+
+Visualizer.prototype.drawHistograms = function(options) {
+  if (!this.simulation.mcmc.initialized) return;
+  var chain = this.simulation.mcmc.chain;
+  // this.histBins = Math.min(125, Math.floor(chain.length / 50) + 10);
+  this.xbins = linspace(this.xmin, this.xmax, this.histBins);
+  this.ybins = linspace(this.ymin, this.ymax, this.histBins);
+  this.xhist = new Uint16Array(this.histBins);
+  this.yhist = new Uint16Array(this.histBins);
+  for (var i = 0; i < chain.length; ++i) {
+    var x = chain[i][0];
+    var xind = (x - this.xmin) / (this.xmax - this.xmin) * this.histBins;
+    if (xind > 0 && xind < this.histBins)
+      this.xhist[xind | 0]++;
+  }
+  for (var i = 0; i < chain.length; ++i) {
+    var y = chain[i][1];
+    var yind = (y - this.ymin) / (this.ymax - this.ymin) * this.histBins;
+    if (yind > 0 && yind < this.histBins)
+      this.yhist[yind | 0]++;
+  }
+  var xmax = 0, ymax = 0;
+  for (var i = 0; i < this.histBins; ++i) {
+    if (this.xhist[i] > xmax)
+      xmax = this.xhist[i];
+    if (this.yhist[i] > ymax)
+      ymax = this.yhist[i];
+  }
+
+  this.xHistCanvas.getContext('2d').clearRect(0, 0, this.xHistCanvas.width, this.xHistCanvas.height);
+  this.yHistCanvas.getContext('2d').clearRect(0, 0, this.yHistCanvas.width, this.yHistCanvas.height);
+
+  // draw x histogram
+  var context = this.xHistCanvas.getContext('2d');
+  context.globalAlpha = 0.3;
+  context.fillStyle = this.histFillStyle;
+  var dx = 1 / this.histBins * this.xHistCanvas.width;
+  for (var i = 0; i < this.histBins; ++i) {
+    var x = i / this.histBins * this.xHistCanvas.width;
+    var y = 1.0 / xmax * this.xhist[i] * this.xHistCanvas.height;
+    context.fillRect(x, this.xHistCanvas.height, dx, -y);
+  }
+
+  // draw y histogram
+  var context = this.yHistCanvas.getContext('2d');
+  context.globalAlpha = 0.3;
+  context.fillStyle = this.histFillStyle;
+  var dy = 1 / this.histBins * this.yHistCanvas.height;
+  for (var i = 0; i < this.histBins; ++i) {
+    var y = (1 - i / this.histBins) * this.yHistCanvas.height;
+    var x = 1.0 / ymax * this.yhist[i] * this.yHistCanvas.width;
+    context.fillRect(0, y, x, -dy);
+  }
 };
 
 Visualizer.prototype.drawCircle = function(canvas, options) {
@@ -180,7 +258,7 @@ Visualizer.prototype.drawSample = function(canvas, center) {
   context.globalCompositeOperation = 'multiply';
   this.drawCircle(canvas, { fill: 'rgb(216,216,216)', center: center, radius: 0.015, lw: 0});
   context.globalCompositeOperation = 'source-over';
-}
+};
 
 // http://stackoverflow.com/questions/17242144/javascript-convert-hsb-hsv-color-to-rgb-accurately
 Visualizer.HSVtoRGB = function(h, s, v) {
@@ -344,11 +422,13 @@ Visualizer.prototype.dequeue = function() {
   if (event.type == 'accept') {
     this.drawArrow(this.overlayCanvas, { from: last, to: event.proposal, color: this.acceptColor, lw: 2 });
     this.drawSample(this.samplesCanvas, event.proposal);
+    this.drawHistograms();
   }
 
   if (event.type == 'reject') {
     this.drawArrow(this.overlayCanvas, { from: last, to: event.proposal, color: this.rejectColor, lw: 2 });
     this.drawSample(this.samplesCanvas, last);
+    this.drawHistograms();
   }
 
   if (event.type == 'text') {

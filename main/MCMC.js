@@ -47,7 +47,7 @@ MCMC.targets['banana'] = {
     grad[0] = gradx0;
     grad[1] = gradx1;
     return grad;
-  }
+  },
 };
 
 // Donut

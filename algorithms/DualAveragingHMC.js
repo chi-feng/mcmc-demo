@@ -33,11 +33,8 @@ MCMC.registerAlgorithm('DualAveragingHMC', {
       while (Math.pow(self.joint(result.theta, result.r) / self.joint(theta, r), a) > Math.pow(2.0, -a)) {
         epsilon = Math.pow(2, a) * epsilon;
         result = self.leapFrog(result.theta, result.r, epsilon);
-        if (epsilon < 0.005) {
-          return 0.005;
-        }
       }
-      return epsilon;
+      return Math.max(1e-4, epsilon);
     };
   },
 

@@ -3,6 +3,7 @@
 function Simulation() {
   this.mcmc = {initialized: false, hasAlgorithm: false, hasTarget: false, dim: 2};
   this.delay = 250;
+  this.tweeningDelay = 0;
   this.autoplay = true;
 };
 
@@ -17,6 +18,7 @@ Simulation.prototype.setAlgorithm = function(algorithmName) {
   this.mcmc.step = MCMC.algorithms[algorithmName].step;
   this.mcmc.attachUI = MCMC.algorithms[algorithmName].attachUI;
   this.mcmc.about = MCMC.algorithms[algorithmName].about;
+  document.getElementById('info').innerHTML = this.mcmc.description;
   if (this.hasAlgorithm && this.hasTarget) {
     this.visualizer.resize();
     if (this.mcmc.initialized == false)
@@ -82,7 +84,7 @@ Simulation.prototype.animate = function() {
   if (this.autoplay || this.visualizer.tweening)
     this.step();
   if (this.visualizer.tweening) {
-    requestAnimationFrame(function() { self.animate(); });
+    setTimeout(function() { requestAnimationFrame(function() { self.animate(); }); }, self.tweeningDelay);
   } else {
     setTimeout(function() { requestAnimationFrame(function() { self.animate(); }); }, self.delay);
   }
@@ -91,7 +93,11 @@ Simulation.prototype.animate = function() {
 var viz, sim, gui;
 
 window.onload = function() {
-  viz = new Visualizer(document.getElementById('visualizer'));
+  viz = new Visualizer(
+    document.getElementById('plotCanvas'),
+    document.getElementById('xHistCanvas'),
+    document.getElementById('yHistCanvas')
+  );
   sim = new Simulation();
   sim.visualizer = viz;
   viz.simulation = sim;
@@ -131,7 +137,7 @@ window.onload = function() {
     gui.removeFolder('Algorithm Options');
     var f = gui.addFolder('Algorithm Options');
     sim.mcmc.attachUI(sim.mcmc, f);
-    f.add(sim.mcmc, 'about').name('About this algorithm...');
+    f.add(sim.mcmc, 'about').name('About...');
     f.open();
   });
   f1.add(sim, 'target', MCMC.targetNames).name('Target distribution').onChange(function(value) {
@@ -139,15 +145,27 @@ window.onload = function() {
     updateHash(sim);
   });
   f1.add(sim, 'autoplay').name('Autoplay');
-  f1.add(sim, 'delay', 0, 1000).name('Autoplay delay');
+  f1.add(sim, 'delay', 0, 1000).name('Autoplay delay').onChange(function(value) {
+    if (value == 0) {
+      viz.animateProposal = false;
+    } else {
+      viz.animateProposal = true;
+    }
+  });
+  f1.add(sim, 'tweeningDelay', 0, 200).name('Tweening delay');
   f1.add(sim, 'step').name('Step');
   f1.add(sim, 'reset').name('Reset');
   f1.open();
 
   var f2 = gui.addFolder('Visualization Options');
-  f2.add(viz, 'animateProposal').name('Animate proposal');
+  f2.add(viz, 'animateProposal').name('Animate proposal').listen();
   f2.add(viz, 'showTargetDensity').name('Show target');
   f2.add(viz, 'showSamples').name('Show samples');
+  f2.add(viz, 'showHistograms').name('Show histogram');
+  f2.add(viz, 'histBins', 20, 200).step(1).name('Histogram bins').onChange(function(value) {
+    viz.drawHistograms();
+    viz.render();
+  });
   f2.open();
 
   gui.removeFolder('Algorithm Options');
