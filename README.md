@@ -8,9 +8,22 @@
  - [Hessian-Hamiltonian Monte Carlo (H2MC)](http://chifeng.scripts.mit.edu/stuff/mcmc-demo/#H2MC,banana) ([source](algorithms/H2MC.js)) \[4\]
  - [Stein Variational Gradient Descent (SVGD)](http://chifeng.scripts.mit.edu/stuff/mcmc-demo/#SVGD,banana) ([source](algorithms/SVGD.js)) \[5\] 
 
-![NUTS in action](https://raw.githubusercontent.com/chi-feng/mcmc-demo/master/docs/nuts.gif)
-
-*Figure 1.* No-U-Turn Sampler in action!
+<table>
+<tr>
+<td><img src="https://raw.githubusercontent.com/chi-feng/mcmc-demo/master/docs/rwmh.gif" width="400"></td>
+<td><img src="https://raw.githubusercontent.com/chi-feng/mcmc-demo/master/docs/mala.gif" width="400"></td>
+</tr>
+<tr><td>Random-walk Metropolis Hastings</td><td>Metropolis-adjusted Langevin Algorithm</td></tr>
+<tr>
+<td><img src="https://raw.githubusercontent.com/chi-feng/mcmc-demo/master/docs/hmc.gif" width="400"></td>
+<td><img src="https://raw.githubusercontent.com/chi-feng/mcmc-demo/master/docs/nuts.gif" width="400"></td>
+</tr>
+<tr><td>Hamiltonian (Hybrid) Monte Carlo</td><td>No-U-Turn Sampler</td></tr>
+<tr>
+<td><img src="https://raw.githubusercontent.com/chi-feng/mcmc-demo/master/docs/svgd.gif" width="400"></td>
+</tr>
+<tr><td>Stein Variational Gradient Descent</td></tr>
+</table>
 
 ## References
 \[1\] H. Haario, E. Saksman, and J. Tamminen, [An adaptive Metropolis algorithm](http://projecteuclid.org/euclid.bj/1080222083) (2001)
