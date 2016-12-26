@@ -444,6 +444,24 @@ Visualizer.prototype.dequeue = function() {
     }
   }
 
+  if (event.type == 'svgd-step') {
+    // clear overlay canvas
+    var context = this.overlayCanvas.getContext('2d');
+    context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    for (var i = 0; i < event.x.length; i++) {
+      this.drawCircle(this.overlayCanvas, { fill: '#000', center: event.x[i], radius: 0.02, lw: 0});
+    }
+    // draw svgd particles and gradient vectors
+    for (var i = 0; i < event.x.length; i++) {
+      var norm = event.gradx[i].norm();
+      var to = event.x[i].add(event.gradx[i].scale(0.25 / norm));
+      var alpha = Math.min(10 * norm, 1).toFixed(2);
+      color = 'rgba(0,0,0,' + alpha + ')';
+      this.drawArrow(this.overlayCanvas, { from: event.x[i], to: to, color: color, lw: 1});
+    }
+    this.drawHistograms();
+  }
+
   if (event.type == 'nuts-animation-end') {
     this.tweening = false;
   }

@@ -209,7 +209,7 @@ window.onload = function() {
     gui.removeFolder('Algorithm Options');
     var f = gui.addFolder('Algorithm Options');
     sim.mcmc.attachUI(sim.mcmc, f);
-    f.add(sim.mcmc, 'about').name('About...');
+    // f.add(sim.mcmc, 'about').name('About...');
     f.open();
   });
   f1.add(sim, 'target', MCMC.targetNames).name('Target distribution').onChange(function(value) {
@@ -243,7 +243,7 @@ window.onload = function() {
   gui.removeFolder('Algorithm Options');
   var f3 = gui.addFolder('Algorithm Options');
   sim.mcmc.attachUI(sim.mcmc, f3);
-  f3.add(sim.mcmc, 'about').name('About...');
+  f3.add(sim.mcmc, 'about').name('About this algorithm');
   f3.open();
 
   sim.animate();
