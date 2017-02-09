@@ -1,41 +1,49 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<html>
 <head>
-  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <title>MCMC Interactive Gallery</title>
-  <script src="lib/dat.gui.min.js"></script>
-  <script src="lib/conrec.min.js"></script>
-  <script src="lib/canvas-5-polyfill.js"></script>
-  <script src="lib/linalg.core.js"></script>
-  <script src="lib/linalg.opt.js"></script>
-  <style>
-  html, body { padding:0; margin:0; width:100%; height:100%; overflow: hidden; }
-  canvas {position: absolute; }
-  body { font-family: Arial, sans-serif; }
-  #github { display: inline-block; position: fixed; bottom:5px; left:5px; }
-  #info { display: inline-block; position: fixed; top:5px; left:5px; }
-  .dg,.dg li.save-row .button{text-shadow:none!important}.dg.main.taller-than-window .close-button{border-top:1px solid #ddd}.dg.main .close-button{background-color:#eee}.dg.main .close-button:hover{background-color:#ddd}.dg{color:#555}.dg.main::-webkit-scrollbar{background:#fafafa}.dg.main::-webkit-scrollbar-thumb{background:#bbb}.dg li:not(.folder){background:rgba(240,240,240,0.6);border-bottom:1px solid rgba(200,200,200,0.5)}.dg li.title{background:url(data:image/gif;base64,R0lGODlhBQAFAJEAAP////Pz8////////yH5BAEAAAIALAAAAAAFAAUAAAIIlI+hKgFxoCgAOw==) 6px 10px no-repeat rgba(230,230,230,0.7);}.dg .cr.boolean:hover,.dg .cr.function:hover{background:#fff}.dg .c input[type=text]{background:#e9e9e9}.dg .c input[type=text]:hover{background:#eee}.dg .c input[type=text]:focus{background:#eee;color:#555}.dg .c .slider{background:#e9e9e9}.dg .c .slider:hover{background:#eee}
-  </style>
+<title>The Markov-chain Monte Carlo Interactive Gallery</title>
+<style>
+body { max-width: 50em; padding: 2em 1em; margin: 0 auto; }
+a, a:visited { text-decoration: none; color: #369; }
+a:hover { text-decoration: underline; }
+table { width: 100%; border-collapse: collapse; }
+td img {width: 100%; }
+li { margin-bottom: 0.5em; }
+.references p { padding-left: 1.4em ; text-indent: -1.4em ; }
+</style>
 </head>
 <body>
-<div id="info"></div>
-<div id="github"><a href="https://github.com/chi-feng/mcmc-demo">Github</a></div>
-<canvas id="plotCanvas" width="100%" height="100%"></canvas>
-<script src="main/MultivariateNormal.js"></script>
-<script src="main/MCMC.js"></script>
-<script src="main/Simulation.js"></script>
-<script src="main/Visualizer.js"></script>
-<script src="algorithms/HamiltonianMC.js"></script>
-<script src="algorithms/RandomWalkMH.js"></script>
-<script src="algorithms/AdaptiveMH.js"></script>
-<script src="algorithms/MALA.js"></script>
-<script src="algorithms/NaiveNUTS.js"></script>
-<script src="algorithms/EfficientNUTS.js"></script>
-<script src="algorithms/DualAveragingHMC.js"></script>
-<script src="algorithms/DualAveragingNUTS.js"></script>
-<script src="algorithms/H2MC.js"></script>
-<script src="algorithms/SVGD.js"></script>
-</body>
-</html>
+<h2>The Markov-chain Monte Carlo Interactive Gallery</h2>
+<p>Click on an algorithm below to view interactive demo:</p>
+<ul>
+    <li>
+        <a href="app.html#RandomWalkMH,banana">Random Walk Metropolis Hastings</a>
+    </li>
+    <li>
+        <a href="app.html#AdaptiveMH,banana">Adaptive Metropolis Hastings</a> <a href="#ref-1" class="reference">[1]</a>
+    </li>
+    <li>
+        <a href="app.html#HamiltonianMC,banana">Hamiltonian Monte Carlo</a> <a href="#ref-2" class="reference">[2]</a>
+    </li>
+    <li>
+        <a href="app.html#NaiveNUTS,banana">No-U-Turn Sampler</a> <a href="#ref-2" class="reference">[2]</a>
+    </li>
+    <li>
+        <a href="app.html#MALA,banana">Metropolis-adjusted Langevin Algorithm (MALA)</a> <a href="#ref-3" class="reference">[3]</a>
+    </li>
+    <li>
+        <a href="app.html#H2MC,banana">Hessian-Hamiltonian Monte Carlo (H2MC)</a> <a href="#ref-4" class="reference">[4]</a>
+    </li>
+    <li>
+        <a href="app.html#SVGD,banana">Stein Variational Gradient Descent (SVGD)</a> <a href="#ref-5" class="reference">[5]</a>
+    </li>
+</ul>
 
+<h3>References</h3>
+<div class="references">
+<p id="ref-1">[1] H. Haario, E. Saksman, and J. Tamminen, <a target="_blank" href="http://projecteuclid.org/euclid.bj/1080222083">An adaptive Metropolis algorithm</a> (2001)</p>
+<p id="ref-2">[2] M. D. Hoffman, A. Gelman, <a target="_blank" href="http://arxiv.org/abs/1111.4246">The No-U-Turn Sampler: Adaptively Setting Path Lengths in Hamiltonian Monte Carlo</a> (2011)</p>
+<p id="ref-3">[3] G. O. Roberts, R. L. Tweedie, <a target="_blank" href="http://www2.stat.duke.edu/~scs/Courses/Stat376/Papers/Langevin/RobertsTweedieBernoulli1996.pdf">Exponential Convergence of Langevin Distributions and Their Discrete Approximations</a> (1996)</p>
+<p id="ref-4">[4] Li, Tzu-Mao, et al. <a target="_blank" href="https://people.csail.mit.edu/tzumao/h2mc/">Anisotropic Gaussian mutations for metropolis light transport through Hessian-Hamiltonian dynamics</a> ACM Transactions on Graphics 34.6 (2015): 209.</p>
+<p id="ref-5">[5] Q. Liu, et al. <a target="_blank" href="http://www.cs.dartmouth.edu/~dartml/project.html?p=vgd">Stein Variational Gradient Descent: A General Purpose Bayesian Inference Algorithm</a> Advances in Neural Information Processing Systems. 2016.</p>
+</div>
+</body>
