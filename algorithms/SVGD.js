@@ -27,17 +27,7 @@ MCMC.registerAlgorithm('SVGD', {
   attachUI: function(self, folder) {
     folder.add(self, 'h', 0.05, 1).step(0.05).name('bandwidth');
     folder.add(self, 'epsilon', 0.05, 0.5).step(0.05).name('stepsize');
-    folder.add(self, 'n', 10, 400).step(1).name('numParticles').onChange(function(value) {
-      self.n = parseInt(value);
-      if (self.n > self.chain.length) {
-        for (var i = 0; i < self.chain.length - self.n; i++) {
-          self.chain.push(MultivariateNormal.getSample(self.dim));
-        }
-      } else if (self.n < self.chain.length) {
-        self.chain = self.chain.slice(0, self.n);
-      }
-      console.log(self.n, self.chain.length);
-    });
+    folder.add(self, 'n', 10, 400).step(1).name('numParticles');
     folder.open();
   },
 
@@ -45,6 +35,15 @@ MCMC.registerAlgorithm('SVGD', {
 
     var gradx = [];
 
+    // resize samples appropriately
+    if (self.n > self.chain.length) {
+      for (var i = 0; i < self.n - self.chain.length; i++) {
+        self.chain.push(MultivariateNormal.getSample(self.dim));
+      }
+    } else if (self.n < self.chain.length) {
+      self.chain = self.chain.slice(0, self.n);
+    }
+    
     var x = self.chain;
     var h = self.h;
 
@@ -69,7 +68,7 @@ MCMC.registerAlgorithm('SVGD', {
     visualizer.queue.push({ type: 'svgd-step', x: x, gradx: gradx, h: h});
 
     // update particles
-    for (var i = 0; i < self.n; i++) {
+    for (var i = 0; i < self.chain.length; i++) {
       x[i].increment(gradx[i].scale(self.epsilon));
     }
 
