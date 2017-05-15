@@ -54,6 +54,25 @@ MCMC.registerAlgorithm('SVGD', {
     });
 
     // compute gradient of x as empirical average of gradx_i for i = 1...n
+    for (var i = 0; i < self.chain.length; i++) {
+      var x_i = self.chain[i];
+      var gradx_i = Float64Array.zeros(self.dim);
+      for (var j = 0; j < self.chain.length; j++) {
+        var x_j = self.chain[j];
+        var dist2 = 0;
+        for (var k = 0; k < self.dim; k++) 
+          dist2 += Math.pow(x_i[k] - x_j[k], 2);
+        var rbf = Math.exp(-dist2 / (2 * h * h));
+        for (var k = 0; k < self.dim; k++) {
+          var grad_rbf = (x_i[k] - x_j[k]) * 2 * rbf / (h * h);
+          gradx_i[k] += gradLogDensities[j][k] * rbf + grad_rbf;
+          gradx_i[k] /= self.chain.length;
+        }
+      }
+      gradx.push(gradx_i);
+    }
+    
+    /*
     x.forEach(function(x_i, i) {
       var gradx_i = Float64Array.zeros(self.dim);
       x.forEach(function(x_j, j) {
@@ -64,6 +83,7 @@ MCMC.registerAlgorithm('SVGD', {
       });
       gradx.push(gradx_i.scale(1 / self.n)); // average over x_j
     });
+    */
 
     visualizer.queue.push({ type: 'svgd-step', x: x, gradx: gradx, h: h});
 
