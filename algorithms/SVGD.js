@@ -66,9 +66,10 @@ MCMC.registerAlgorithm('SVGD', {
         for (var k = 0; k < self.dim; k++) {
           var grad_rbf = (x_i[k] - x_j[k]) * 2 * rbf / (h * h);
           gradx_i[k] += gradLogDensities[j][k] * rbf + grad_rbf;
-          gradx_i[k] /= self.chain.length;
         }
       }
+      for (var k = 0; k < self.dim; k++) 
+        gradx_i[k] /= self.chain.length;
       gradx.push(gradx_i);
     }
     
