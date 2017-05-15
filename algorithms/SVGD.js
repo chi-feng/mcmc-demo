@@ -27,6 +27,15 @@ MCMC.registerAlgorithm('SVGD', {
   attachUI: function(self, folder) {
     folder.add(self, 'h', 0.05, 1).step(0.05).name('bandwidth');
     folder.add(self, 'epsilon', 0.05, 0.5).step(0.05).name('stepsize');
+    folder.add(self, 'n', 10, 400).step(1).name('numParticles').onChange(function(value) {
+      if (value > self.chain.length) {
+        for (var i = 0; i < self.chain.length - value; i++) {
+          self.chain.push(MultivariateNormal.getSample(self.dim));
+        }
+      } else if (value < self.chain.length) {
+        self.chain = self.chain.slice(0, value);
+      }
+    });
     folder.open();
   },
 
