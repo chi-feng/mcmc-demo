@@ -26,7 +26,7 @@ MCMC.registerAlgorithm('SVGD', {
 
   attachUI: function(self, folder) {
     folder.add(self, 'h', 0.05, 1).step(0.05).name('bandwidth');
-    folder.add(self, 'epsilon', 0.05, 0.5).step(0.05).name('stepsize');
+    folder.add(self, 'epsilon', 0.05, 1.0).step(0.05).name('stepsize');
     folder.add(self, 'n', 10, 400).step(1).name('numParticles');
     folder.open();
   },
