@@ -454,7 +454,8 @@ Visualizer.prototype.dequeue = function() {
     // draw svgd particles and gradient vectors
     for (var i = 0; i < event.x.length; i++) {
       var norm = event.gradx[i].norm();
-      var to = event.x[i].add(event.gradx[i].scale(0.25 / norm));
+      var scale = 0.25 / norm;
+      var to = event.x[i].add(event.gradx[i].scale(scale));
       var alpha = Math.min(10 * norm, 1).toFixed(2);
       color = 'rgba(0,0,0,' + alpha + ')';
       this.drawArrow(this.overlayCanvas, { from: event.x[i], to: to, color: color, lw: 1});
