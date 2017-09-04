@@ -1,5 +1,19 @@
 'use strict';
 
+/*
+Copyright: Johannes Buchner (C) 2013-2017
+
+Nested Sampling with RadFriends   https://arxiv.org/abs/1407.5459
+
+Code recycled from https://github.com/JohannesBuchner/ultranest-js
+
+License: AGPL-3.0
+
+See TODO's at the bottom for open issues
+
+*/
+
+
 function point(L, coords, phys_coords) {
 	this.L = L
 	this.coords = coords
@@ -412,7 +426,7 @@ function integrator(ndim, transform, likelihood, data_calc, nlive_points, tolera
 		
 		sampler.integrate_remainder(this.logwidth, this.logVolremaining, this.logZ)
 		
-		if (this.iter > nlive_points && false) {
+		if (true) {
 			var total_error = this.logZerr + sampler.remainderZerr
 			if (total_error < tolerance) {
 				console.log("integrator: tolerance reached " + total_error + " of " + tolerance)
@@ -439,8 +453,18 @@ function integrator(ndim, transform, likelihood, data_calc, nlive_points, tolera
 	this.progress = _progress
 	function _getResults() {
 		var remainder_weights = sampler.integrate_remainder(this.logwidth, this.logVolremaining, this.logZ)
-		var logZerrfinal = this.logZerr + sampler.remainderZerr
-		var logZfinal = logaddexp(this.logZ, sampler.remainderZ)
+		var logZtotal = this.logZ
+		var Htotal = this.H
+		for(var i = 0; i < remainder_weights.length; i++) {
+			var Li = remainder_weights[i][1].L
+			var wi = this.logwidth + Li
+			var logZnew = logaddexp(logZtotal, wi)
+			Htotal = Math.exp(wi - logZnew) * Li + Math.exp(logZtotal - logZnew) * (Htotal + logZtotal) - logZnew
+			logZtotal = logZnew
+		}
+
+		var logZerrfinal = Math.sqrt(Htotal / nlive_points) + sampler.remainderZerr
+		var logZfinal = logaddexp(logZtotal, sampler.remainderZ)
 
 		return [logZfinal, logZerrfinal, weights.concat(remainder_weights)]
 	}
@@ -492,6 +516,12 @@ MCMC.registerAlgorithm('RadFriends-NS', {
     //self.chain.push(lowest);
     var r = self.integrator.progress()
 
+    if (r == 0) {
+       // TODO:
+       // we are done/converged
+       // maybe the algorithm should sleep/stop or restart from scratch after a little while?
+    }
+
     // visualise:
     //    newest drawn live point: self.integrator.current replaced lowest
     //visualizer.reset()
@@ -512,13 +542,6 @@ MCMC.registerAlgorithm('RadFriends-NS', {
     console.log("live points:" + x.length + " radius: " +  rad)
     // TODO: this is not shown properly as circles of radius rad
     visualizer.queue.push({type: 'radfriends-region', x: x, r: rad, cov: eye(self.dim, self.dim).scale(rad*rad)});
-    
-
-    if (r == 0) {
-       // TODO:
-       // we are done/converged
-       // maybe the algorithm should sleep/stop or restart from scratch after a little while?
-    }
     
     var results = self.integrator.getResults()
     var weighted_samples = results[2];

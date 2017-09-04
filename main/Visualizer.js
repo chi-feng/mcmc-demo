@@ -488,7 +488,9 @@ Visualizer.prototype.dequeue = function() {
     context.clearRect(0, 0, this.canvas.width, this.canvas.height);
     for (var i = 0; i < event.x.length; i++) {
       // TODO: this does not show correctly as circles of radius r
-      //this.drawCircle(this.overlayCanvas, { fill: '#afa', color: '#afa', center: event.x[i], radius: event.r, lw: 1});
+      // I wanted to use this:
+      // this.drawCircle(this.overlayCanvas, { fill: '#afa', color: '#afa', center: event.x[i], radius: event.r, lw: 1});
+      // now I use this:
       this.drawProposalContour(this.overlayCanvas, event.x[i], event.cov)
       this.drawSample(this.overlayCanvas, event.x[i]);
     }
