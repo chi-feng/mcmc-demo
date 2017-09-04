@@ -483,6 +483,22 @@ Visualizer.prototype.dequeue = function() {
     var context = this.overlayCanvas.getContext('2d');
   }
 
+  if (event.type == 'radfriends-region') {
+    var context = this.overlayCanvas.getContext('2d');
+    context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    for (var i = 0; i < event.x.length; i++) {
+      // TODO: this does not show correctly as circles of radius r
+      //this.drawCircle(this.overlayCanvas, { fill: '#afa', color: '#afa', center: event.x[i], radius: event.r, lw: 1});
+      this.drawProposalContour(this.overlayCanvas, event.x[i], event.cov)
+      this.drawSample(this.overlayCanvas, event.x[i]);
+    }
+  }
+  if (event.type == 'ns-dead-point') {
+    this.drawArrow(this.overlayCanvas, { from: event.deadpoint, to: event.proposal, color: this.acceptColor, lw: 2 });
+    this.drawSample(this.samplesCanvas, event.proposal);
+    this.drawHistograms();
+  }
+
 };
 
 Visualizer.prototype.drawProposalContour = function(canvas, last, cov) {
