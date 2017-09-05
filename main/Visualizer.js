@@ -374,6 +374,20 @@ Visualizer.prototype.dequeue = function() {
         }
       }
     }
+    if (event.hasOwnProperty('ns_rejected')) {
+      //console.log("ns_rejected: " + event.ns_rejected)
+      if (this.animateProposal) {
+        for (var i = 0; i < event.ns_rejected.length; ++i)
+          this.queue.splice(i, 0, {type: 'ns-trajectory-animation-step', ns_rejected: event.ns_rejected, previous: event.previous, offset: i});
+        this.queue.push({type: 'ns-trajectory-animation-end', ns_rejected: event.ns_rejected, previous: event.previous});
+      } else {
+        for (var i = 0; i < event.ns_rejected.length; ++i) {
+           this.drawArrow(this.overlayCanvas, { from: event.previous, to: event.ns_rejected[i], color: this.rejectColor, lw: 2 });
+           //this.drawSample(this.samplesCanvas, event.ns_rejected[i]);
+        }
+      }
+      drawProposalArrow = false;
+    }
     // draw MALA gradient/proposal offset
     if (event.hasOwnProperty('gradient')) {
       this.drawArrow(this.overlayCanvas, { from: last, to: last.add(event.gradient), color: this.nutsColor, lw: 1 });
@@ -414,13 +428,23 @@ Visualizer.prototype.dequeue = function() {
   if (event.type == 'trajectory-animation-step') {
     this.tweening = true; // start skiping delay for calling requestAnimationFrame
     var context = this.overlayCanvas.getContext('2d');
-    var path = [event.trajectory[event.offset], event.trajectory[event.offset + 1]];
+    var path = [event.previous, event.trajectory[event.offset]];
     this.drawPath(this.overlayCanvas, { path: path, color: this.trajectoryColor, lw: 1});
     // this.drawArrow(this.overlayCanvas, {from: event.trajectory[event.offset], to: event.trajectory[event.offset + 1], color: this.trajectoryColor, lw: 0.5, arrowScale: 0.8, alpha: 0.8 });
     this.drawCircle(this.overlayCanvas, { fill: this.trajectoryColor, center: event.trajectory[event.offset + 1], radius: 0.02, lw: 0});
   }
-
+  
   if (event.type == 'trajectory-animation-end') {
+    this.tweening = false; // stop skipping delay for calling requestAnimationFrame
+  }
+
+  if (event.type == 'ns-trajectory-animation-step') {
+    this.tweening = true; // start skiping delay for calling requestAnimationFrame
+    this.drawArrow(this.overlayCanvas, { from: event.previous, to: event.ns_rejected[event.offset], color: this.rejectColor, lw: 2 });
+    //this.drawSample(this.samplesCanvas, event.ns_rejected[event.offset]);
+  }
+  
+  if (event.type == 'ns-trajectory-animation-end') {
     this.tweening = false; // stop skipping delay for calling requestAnimationFrame
   }
 
@@ -481,6 +505,38 @@ Visualizer.prototype.dequeue = function() {
 
   if (event.type == 'text') {
     var context = this.overlayCanvas.getContext('2d');
+  }
+
+  if (event.type == 'radfriends-region') {
+    var context = this.overlayCanvas.getContext('2d');
+    context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    for (var i = 0; i < event.x.length; i++) {
+      this.drawCircle(this.overlayCanvas, { fill: '#cfc', color: '#afa', center: event.x[i], radius: event.r, lw: 1});
+      //context.beginPath();
+      //context.strokeStyle = '#cfc';
+      //context.ellipse(event.x[i][0] * this.scale + this.origin[0], event.x[i][1] * this.scale+ this.origin[0], 2 * event.r * this.scale, 2 * event.r * this.scale, 0, 0, 2 * Math.PI, false);
+      //context.stroke();
+
+    }
+    for (var i = 0; i < event.x.length; i++) {
+      this.drawCircle(this.overlayCanvas, { fill: '#00f', center: event.x[i], radius: 0.02, lw: 1});
+    }
+  }
+  if (event.type == 'ns-dead-point') {
+    this.drawArrow(this.overlayCanvas, { from: event.deadpoint, to: event.proposal, color: this.acceptColor, lw: 2 });
+    this.drawSample(this.samplesCanvas, event.proposal);
+
+    //var context = this.overlayCanvas.getContext('2d');
+    //context.globalCompositeOperation = 'multiply';
+    for (var i = 0; i < event.rejected.length; ++i) {
+      this.drawCircle(this.overlayCanvas, { fill: this.rejectColor, color: this.rejectColor, center: event.rejected[i], radius: 0.02, lw: 3});
+      //this.drawArrow(this.overlayCanvas, { from: event.previous, to: event.rejected[i], color: this.rejectColor, lw: 2 });
+      //this.drawSample(this.samplesCanvas, event.ns_rejected[i]);
+    }
+    this.drawCircle(this.overlayCanvas, { fill: this.acceptColor, color: this.acceptColor, center: event.proposal, radius: 0.02, lw: 3});
+    //context.globalCompositeOperation = 'source-over';
+
+    this.drawHistograms();
   }
 
 };
