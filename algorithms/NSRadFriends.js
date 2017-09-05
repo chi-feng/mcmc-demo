@@ -364,6 +364,7 @@ function nested_sampler(ndim, drawer, nlive_points, transform, likelihood) {
 	this.ndraws = 0
 	this.drawer = drawer
 	this.live_points = []
+	this.latest_point = NaN
 	function _generate_live_points() {
 		console.log("sampler: generating live points ")
 		for(var i = 0; i < nlive_points; i++) {
@@ -379,6 +380,7 @@ function nested_sampler(ndim, drawer, nlive_points, transform, likelihood) {
 			else
 				this.Lmax = Math.max(this.Lmax, current.L)
 			this.live_points[i] = current
+			this.latest_point = current
 		}
 		sort_L(this.live_points)
 		console.log("sampler: generating live points done: " + this.live_points.length)
@@ -394,6 +396,7 @@ function nested_sampler(ndim, drawer, nlive_points, transform, likelihood) {
 		var ndraws = drawer.next(replacement, this.live_points)
 		//console.log("sampler: next(): got " + replacement.L + ", returning " + lowest.L)
 		this.live_points[i] = replacement
+		this.latest_point = replacement
 		sort_L(this.live_points)
 		this.ndraws += ndraws
 		return lowest
@@ -578,11 +581,10 @@ MCMC.registerAlgorithm('RadFriends-NS', {
       x.push(self.integrator.sampler.live_points[i].phys_coords.slice());
     }
     console.log("live points:" + x.length + " radius: " +  rad)
-    // TODO: this is not shown properly as circles of radius rad
 
     //visualizer.queue.push({type: 'proposal', previous: previous, ns_rejected: self.integrator.drawer.rejected});
-    visualizer.queue.push({type: 'radfriends-region', x: x, r: rad, cov: eye(self.dim, self.dim).scale(rad*rad)});
-    visualizer.queue.push({type: 'ns-dead-point', proposal: self.integrator.current.phys_coords, deadpoint: previous, rejected: self.integrator.drawer.rejected});
+    visualizer.queue.push({type: 'radfriends-region', x: x, r: rad});
+    visualizer.queue.push({type: 'ns-dead-point', proposal: self.integrator.sampler.latest_point.phys_coords, deadpoint: previous, rejected: self.integrator.drawer.rejected});
     self.integrator.drawer.rejected = []
     
     var results = self.integrator.getResults()

@@ -533,7 +533,7 @@ Visualizer.prototype.dequeue = function() {
       //this.drawArrow(this.overlayCanvas, { from: event.previous, to: event.rejected[i], color: this.rejectColor, lw: 2 });
       //this.drawSample(this.samplesCanvas, event.ns_rejected[i]);
     }
-    this.drawCircle(this.overlayCanvas, { fill: this.acceptColor, color: this.acceptColor, center: event.proposal, radius: 0.02, lw: 1});
+    this.drawCircle(this.overlayCanvas, { fill: this.acceptColor, color: this.acceptColor, center: event.proposal, radius: 0.02, lw: 3});
     //context.globalCompositeOperation = 'source-over';
 
     this.drawHistograms();
