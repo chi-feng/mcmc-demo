@@ -60,6 +60,7 @@ function compute_distance_lt(acoords, bcoords, maxsqdistance) {
 
 
 function nearest_rdistance_guess(ndim, live_points) {
+	// Jack-knife implementation
 	var maxsqdistance = 0.0
 	var n = live_points.length
 	for(var i = 0; i < n; i++) {
@@ -79,18 +80,48 @@ function nearest_rdistance_guess(ndim, live_points) {
 	return maxsqdistance
 }
 
+function getRandomInt(min, max) {
+  min = Math.ceil(min);
+  max = Math.floor(max);
+  return Math.floor(Math.random() * (max - min)) + min; //The maximum is exclusive and the minimum is inclusive
+}
+
+function nearest_rdistance_guess(ndim, live_points) {
+	// boot-strapping implementation
+	var nbootstrap_rounds = 20;
+	var maxsqdistance = 0.0
+	var n = live_points.length
+	for(var j = 0; j < nbootstrap_rounds; j++) {
+		var selected = [];
+		var nonselected = [];
+		for(var i = 0; i < n; i++) {
+			var k = getRandomInt(0, n)
+			if(selected.indexOf(k) == -1)
+				selected.push(k)
+		}
+		for(var i = 0; i < n; i++) {
+			if(selected.indexOf(i) == -1)
+				nonselected.push(i)
+		}
+		for(var i = 0; i < nonselected.length; i++) {
+			// compute distance to any selected
+			var a = nonselected[i];
+			var b = selected[0];
+			var minsqdistance = compute_distance(live_points[a].coords, live_points[b].coords);
+			for(var k = 1; k < selected.length; k++) {
+				b = selected[k];
+				minsqdistance = Math.min(minsqdistance, compute_distance(live_points[a].coords, live_points[b].coords));
+			}
+			maxsqdistance = Math.max(minsqdistance, maxsqdistance)
+		}
+	}
+	// console.log("nearest_rdistance_guess: " + maxsqdistance + " from " + n)
+	return maxsqdistance
+}
+
 function random_normal_vector(ndim) {
-	var direction = []
-	var lengthsq = 0
-	for (var j = 0; j < ndim; j++) {
-		direction[j] = random_normal(0, 1)
-		lengthsq += Math.pow(direction[j], 2)
-	}
-	var length = Math.sqrt(lengthsq)
-	for (var j = 0; j < ndim; j++) {
-		direction[j] = direction[j] / length
-	}
-	return direction
+        var direction = new MultivariateNormal(zeros(ndim, 1), eye(ndim, ndim)).getSample();
+	return direction.scale(1. / direction.norm())
 }
 
 
@@ -114,9 +145,10 @@ function radfriends_drawer(ndim, transform, likelihood) {
 	this.init_region = _init_region
 	var _maxsqdistance = NaN
 	this.maxsqdistance = _maxsqdistance
-	var phase = 0
+	var phase = 1
 	this.phase = phase
 	this.init_region()
+	this.rejected = []
 	
 	function _is_inside(current, members) {
 		for (var i = 0; i < ndim; i++) {
@@ -185,7 +217,7 @@ function radfriends_drawer(ndim, transform, likelihood) {
 		var n = members.length
 		while(1) {
 			ntotal += 1
-			member = members[random_int(0, n - 1)]
+			var member = members[random_int(0, n - 1)]
 			var direction = random_normal_vector(ndim)
 			var radius = Math.sqrt(this.maxsqdistance) * Math.pow(random_uniform(), 1.0/ndim)
 			for(var j = 0; j < ndim; j++) {
@@ -240,6 +272,8 @@ function radfriends_drawer(ndim, transform, likelihood) {
 					if (this.iter % 100 == 1)
 						console.log("drawer: next()[rectangle]: accepted: " + current.L + " after " + ntoaccept + " evals (" + ntotal + ")" )
 					return current
+				} else {
+					this.rejected.push(current.phys_coords.copy())
 				}
 				if (ntotal >= 20) {
 					this.phase = 1
@@ -257,6 +291,8 @@ function radfriends_drawer(ndim, transform, likelihood) {
 				if (this.iter % 100 == 1)
 					console.log("drawer: next()[friends]: accepted: " + current.L + " after " + ntoaccept + " evals (" + ntotal + ")")
 				return current
+			} else {
+				this.rejected.push(current.phys_coords.copy())
 			}
 		}
 	}
@@ -333,8 +369,11 @@ function nested_sampler(ndim, drawer, nlive_points, transform, likelihood) {
 		for(var i = 0; i < nlive_points; i++) {
 			var Lmin = -1e300
 			var current = generate_fullspace(ndim)
+			console.log("transforming " + current.coords)
 			current.phys_coords = transform(current.coords)
+			console.log("became " + current.phys_coords)
 			current.L = likelihood(current.phys_coords)
+			console.log("with likelihood " + current.L)
 			if (i == 0)
 				this.Lmax = current.L
 			else
@@ -426,7 +465,7 @@ function integrator(ndim, transform, likelihood, data_calc, nlive_points, tolera
 		
 		sampler.integrate_remainder(this.logwidth, this.logVolremaining, this.logZ)
 		
-		if (true) {
+		if (false) {
 			var total_error = this.logZerr + sampler.remainderZerr
 			if (total_error < tolerance) {
 				console.log("integrator: tolerance reached " + total_error + " of " + tolerance)
@@ -474,10 +513,9 @@ function integrator(ndim, transform, likelihood, data_calc, nlive_points, tolera
 
 
 function transform(cube) {
-   var params = cube.slice()
+   var params = zeros(cube.length, 1)
    for(var i = 0; i < params.length; i++) {
-     params[i] = cube[i] * 20 - 10;
-     if (isNaN(cube[i]) || isNaN(params[i])) console.log("nan in transform[" + i + "]: " + cube[i] + " --> " + params[i])
+     params[i] = cube[i] * 10 - 5;
    }
    return params
 }
@@ -513,7 +551,7 @@ MCMC.registerAlgorithm('RadFriends-NS', {
     // point about to be removed:
     var lowest = self.integrator.sampler.live_points[0].phys_coords.slice();
     var previous = self.integrator.current.phys_coords.slice()
-    //self.chain.push(lowest);
+    
     var r = self.integrator.progress()
 
     if (r == 0) {
@@ -521,11 +559,11 @@ MCMC.registerAlgorithm('RadFriends-NS', {
        // we are done/converged
        // maybe the algorithm should sleep/stop or restart from scratch after a little while?
     }
-
+    
     // visualise:
     //    newest drawn live point: self.integrator.current replaced lowest
     //visualizer.reset()
-    visualizer.queue.push({type: 'ns-dead-point', proposal: self.integrator.current.phys_coords, deadpoint: previous});
+    console.log("rejected: " + self.integrator.drawer.rejected)
 
     // visualise:
     //    draw the RadFriends region as overlapping circles
@@ -535,13 +573,17 @@ MCMC.registerAlgorithm('RadFriends-NS', {
     //    this should give a "bubble-bath-like" look of the region where new
     //    points are drawn from
     var x = [];
-    var rad = Math.sqrt(self.integrator.drawer.maxsqdistance);
+    var rad = Math.sqrt(self.integrator.drawer.maxsqdistance) * 10;
     for(var i = 0; i < self.integrator.sampler.live_points.length; i++) {
       x.push(self.integrator.sampler.live_points[i].phys_coords.slice());
     }
     console.log("live points:" + x.length + " radius: " +  rad)
     // TODO: this is not shown properly as circles of radius rad
+
+    //visualizer.queue.push({type: 'proposal', previous: previous, ns_rejected: self.integrator.drawer.rejected});
     visualizer.queue.push({type: 'radfriends-region', x: x, r: rad, cov: eye(self.dim, self.dim).scale(rad*rad)});
+    visualizer.queue.push({type: 'ns-dead-point', proposal: self.integrator.current.phys_coords, deadpoint: previous, rejected: self.integrator.drawer.rejected});
+    self.integrator.drawer.rejected = []
     
     var results = self.integrator.getResults()
     var weighted_samples = results[2];
