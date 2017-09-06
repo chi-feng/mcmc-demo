@@ -428,7 +428,7 @@ Visualizer.prototype.dequeue = function() {
   if (event.type == 'trajectory-animation-step') {
     this.tweening = true; // start skiping delay for calling requestAnimationFrame
     var context = this.overlayCanvas.getContext('2d');
-    var path = [event.previous, event.trajectory[event.offset]];
+    var path = [event.trajectory[event.offset], event.trajectory[event.offset + 1]];
     this.drawPath(this.overlayCanvas, { path: path, color: this.trajectoryColor, lw: 1});
     // this.drawArrow(this.overlayCanvas, {from: event.trajectory[event.offset], to: event.trajectory[event.offset + 1], color: this.trajectoryColor, lw: 0.5, arrowScale: 0.8, alpha: 0.8 });
     this.drawCircle(this.overlayCanvas, { fill: this.trajectoryColor, center: event.trajectory[event.offset + 1], radius: 0.02, lw: 0});
