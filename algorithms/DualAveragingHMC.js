@@ -14,7 +14,7 @@ MCMC.registerAlgorithm('DualAveragingHMC', {
     self.delta = 0.65;
     self.M_adapt = 100;
 
-    viz.animateProposal = false;
+    //viz.animateProposal = false;
 
     self.joint = function(theta, r) {
       return Math.exp(self.logDensity(theta) - r.norm2() / 2);
