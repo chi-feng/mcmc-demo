@@ -164,6 +164,18 @@ Simulation.prototype.animate = function() {
 
 var viz, sim, gui;
 
+function getUrlVars() {
+  var vars = [], pair;
+  var pairs = window.location.search.substr(1).split("&");
+  for (var i = 0; i < pairs.length; i++) {
+    pair = pairs[i].split("=");
+    vars.push(pair[0]);
+    vars[pair[0]] = pair[1] &&
+        decodeURIComponent(pair[1].replace(/\+/g, " "));
+  }
+  return vars;
+}
+
 window.onload = function() {
   viz = new Visualizer(
     document.getElementById('plotCanvas'),
@@ -178,25 +190,50 @@ window.onload = function() {
   var target = MCMC.targetNames[0];
   var seed = Math.seedrandom();
 
-  if (window.location.hash != '') {
-    var hash = window.location.hash.substring(1);
-    var tokens = hash.split(',');
-    if (MCMC.algorithmNames.indexOf(tokens[0]) > -1) {
-      algorithm = tokens[0];
-    }
-    if (tokens.length > 1 && MCMC.targetNames.indexOf(tokens[1]) > -1) {
-      target = tokens[1];
-    }
+  function parseBool(value) {
+    return value == 'true';
   }
 
-  function updateHash(sim) {
-    window.location.hash = '#' + sim.algorithm + ',' + sim.target;
+  if (window.location.search != '') {
+    var queryParams = getUrlVars();
+
+    if ('algorithm' in queryParams &&
+          MCMC.algorithmNames.indexOf(queryParams['algorithm']) > -1) {
+      algorithm = queryParams['algorithm'];
+    }
+    if ('target' in queryParams &&
+          MCMC.targetNames.indexOf(queryParams['target']) > -1) {
+      target = queryParams['target'];
+    }
+    if ('seed' in queryParams) {
+      // reseed
+      seed = Math.seedrandom(queryParams['seed']);
+      console.log('Setting seed to ' + seed);
+    }
+    let config = [
+      ['delay', parseInt, sim, 'sim'],
+      ['tweeningDelay', parseInt, sim, 'sim'],
+      ['autoplay', parseBool, sim, 'sim'],
+      ['animateProposal', parseBool, viz, 'viz'],
+      ['showSamples', parseBool, viz, 'viz'],
+      ['showHistograms', parseBool, viz, 'viz'],
+      ['histBins', parseInt, viz, 'viz']
+    ];
+    for (let i=0; i<config.length; i++) {
+      let param   = config[i][0],
+          parse   = config[i][1],
+          obj     = config[i][2],
+          objName = config[i][3];
+      if (param in queryParams) {
+        let value = parse(queryParams[param]);
+        console.log('Setting ' + objName + '.' + param + ' to ' + value);
+        obj[param] = value;
+      }
+    }
   }
 
   sim.setAlgorithm(algorithm);
   sim.setTarget(target);
-
-  updateHash(sim);
 
   sim.mcmc.init(sim.mcmc);
   window.onresize = function() { viz.resize(); };
@@ -206,7 +243,6 @@ window.onload = function() {
   var f1 = gui.addFolder('Simulation options');
   f1.add(sim, 'algorithm', MCMC.algorithmNames).name('Algorithm').onChange(function(value) {
     sim.setAlgorithm(value);
-    updateHash(sim);
     gui.removeFolder('Algorithm Options');
     var f = gui.addFolder('Algorithm Options');
     sim.mcmc.attachUI(sim.mcmc, f);
@@ -215,7 +251,6 @@ window.onload = function() {
   });
   f1.add(sim, 'target', MCMC.targetNames).name('Target distribution').onChange(function(value) {
     sim.setTarget(value);
-    updateHash(sim);
   });
   f1.add(sim, 'autoplay').name('Autoplay');
   f1.add(sim, 'delay', 0, 1000).name('Autoplay delay').onChange(function(value) {
