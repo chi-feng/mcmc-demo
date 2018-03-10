@@ -16,7 +16,7 @@ MCMC.registerAlgorithm('DualAveragingNUTS', {
 
     self.dt = 0;
 
-    viz.animateProposal = false;
+    //viz.animateProposal = false;
 
     self.joint = function(q, p) {
       return Math.exp(self.logDensity(q) - p.norm2() / 2);
