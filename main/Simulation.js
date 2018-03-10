@@ -176,6 +176,7 @@ window.onload = function() {
 
   var algorithm = MCMC.algorithmNames[0];
   var target = MCMC.targetNames[0];
+  var seed = Math.seedrandom();
 
   if (window.location.hash != '') {
     var hash = window.location.hash.substring(1);
