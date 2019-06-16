@@ -1,27 +1,5 @@
 'use strict';
 
-function sampleFullConditional(logDensity, point, index){
-  var point = point.copy();
-  // add some noise to avoid grid pattern in sampling
-  var Xs = linspace(-6 - (Math.random()*12/256), 6+(Math.random()*12/256), 256);
-  var densities = [];
-  var marginal = 0;
-  for(var i=0; i<256; i++){
-    point[index] = Xs[i];
-    var density = Math.exp(logDensity(point));
-    densities.push(density);
-    marginal += density;
-  }
-  var threshold = marginal * Math.random();
-  var sum = 0;
-  var i = 0;
-  while(sum < threshold){
-    sum += densities[i++];
-  }
-  point[index] = Xs[i - 1];
-  return point;
-}
-
 MCMC.registerAlgorithm('GibbsSampling', {
 
   description: 'Gibbs Sampling',
@@ -42,9 +20,31 @@ MCMC.registerAlgorithm('GibbsSampling', {
   },
 
   step: function(self, visualizer){
+
+    function sampleFullConditional(logDensity, point, index){
+      var point = point.copy();
+      // add some noise to avoid grid pattern in samples
+      var Xs = linspace(-6 - (Math.random()*12/256), 6+(Math.random()*12/256), 256);
+      var densities = [];
+      var marginal = 0;
+      for(var i=0; i<256; i++){
+          point[index] = Xs[i];
+          var density = Math.exp(logDensity(point));
+          densities.push(density);
+          marginal += density;
+      }
+      var threshold = marginal * Math.random();
+      var sum = 0;
+      var i = 0;
+      while(sum < threshold){
+          sum += densities[i++];
+      }
+      point[index] = Xs[i - 1];
+      return point;
+    }
+
     var last = self.chain.last();
     var trajectory = [last.copy()];
-    console.log(self);
     for(var i=0; i<2; i++){
       last = sampleFullConditional(self.logDensity, last, i);
       trajectory.push(last);
