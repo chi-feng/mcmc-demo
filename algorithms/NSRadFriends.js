@@ -1,15 +1,13 @@
 'use strict';
 
 /*
-Copyright: Johannes Buchner (C) 2013-2017
+Copyright: Johannes Buchner (C) 2013-2019
 
 Nested Sampling with RadFriends   https://arxiv.org/abs/1407.5459
 
 Code recycled from https://github.com/JohannesBuchner/ultranest-js
 
 License: AGPL-3.0
-
-See TODO's at the bottom for open issues
 
 */
 
@@ -258,7 +256,7 @@ function radfriends_drawer(ndim, transform, likelihood) {
 				this.region_low[j] = Math.max(0, low - Math.sqrt(this.maxsqdistance))
 				this.region_high[j] = Math.min(1, high + Math.sqrt(this.maxsqdistance))
 			}
-			console.log("drawer: next(): new maxsqdistance: " + this.maxsqdistance)
+			// console.log("drawer: next(): new maxsqdistance: " + this.maxsqdistance)
 		}
 		var ntoaccept = 0
 		if (this.phase == 0) {
@@ -269,8 +267,8 @@ function radfriends_drawer(ndim, transform, likelihood) {
 				current.phys_coords = transform(current.coords)
 				current.L = likelihood(current.phys_coords)
 				if (current.L >= Lmin) {
-					if (this.iter % 100 == 1)
-						console.log("drawer: next()[rectangle]: accepted: " + current.L + " after " + ntoaccept + " evals (" + ntotal + ")" )
+					//if (this.iter % 100 == 1)
+					//	console.log("drawer: next()[rectangle]: accepted: " + current.L + " after " + ntoaccept + " evals (" + ntotal + ")" )
 					return current
 				} else {
 					this.rejected.push(current.phys_coords.copy())
@@ -288,8 +286,8 @@ function radfriends_drawer(ndim, transform, likelihood) {
 			current.phys_coords = transform(current.coords)
 			current.L = likelihood(current.phys_coords)
 			if (current.L >= Lmin) {
-				if (this.iter % 100 == 1)
-					console.log("drawer: next()[friends]: accepted: " + current.L + " after " + ntoaccept + " evals (" + ntotal + ")")
+				//if (this.iter % 100 == 1)
+				//	console.log("drawer: next()[friends]: accepted: " + current.L + " after " + ntoaccept + " evals (" + ntotal + ")")
 				return current
 			} else {
 				this.rejected.push(current.phys_coords.copy())
@@ -321,31 +319,39 @@ function sort_L(live_points) {
 	// console.log("live points after  sort: " + live_points[0].L + " to " + live_points[live_points.length - 1].L)
 }
 
-function posterior_samples(weighted_samples, nsamples) {
-	var probs = []
+function get_posterior_weights(weighted_samples) {
+	var probs = [];
 	var logmax = weighted_samples[0][0] + weighted_samples[0][1].L
-	console.log("wsamples: " + weighted_samples[0] + " -> " + weighted_samples[0][1] + " -> " + weighted_samples[0][1].L)
+	//console.log("wsamples: " + weighted_samples[0] + " -> " + weighted_samples[0][1] + " -> " + weighted_samples[0][1].L)
 	for (var i = 0; i < weighted_samples.length; i++) {
 		logmax = Math.max(logmax, weighted_samples[i][0] + weighted_samples[i][1].L)
 	}
-	console.log("logmax:" + logmax)
-	var sum = 0
+	//console.log("logmax:" + logmax)
 	for (var i = 0; i < weighted_samples.length; i++) {
 		probs[i] = Math.exp(weighted_samples[i][0] + weighted_samples[i][1].L - logmax)
+	}
+	return probs;
+}
+
+
+function posterior_samples(weighted_samples, nsamples) {
+	// draw nsamples equally probable posterior samples 
+	var probs = get_posterior_weights(weighted_samples);
+	var sum = 0;
+	for (var i = 0; i < weighted_samples.length; i++) {
 		sum += probs[i]
 	}
-	console.log("sum:" + sum)
-	var samples = []
+	var samples = [];
 	for (var j = 0; j < nsamples; j++) {
 		var coin = random_uniform() * sum
-		var below = 0
-		var i = 0
+		var below = 0;
+		var i = 0;
 		while(i < weighted_samples.length) {
 			below += probs[i]
 			if (coin <= below)
-				break
+				break;
 			else
-				i += 1
+				i += 1;
 		}
 		// console.log("choice:" + i + " of " + weighted_samples.length + " where " + coin + " reached " + below)
 		samples[j] = weighted_samples[i][1].phys_coords
@@ -366,15 +372,15 @@ function nested_sampler(ndim, drawer, nlive_points, transform, likelihood) {
 	this.live_points = []
 	this.latest_point = NaN
 	function _generate_live_points() {
-		console.log("sampler: generating live points ")
+		//console.log("sampler: generating live points ")
 		for(var i = 0; i < nlive_points; i++) {
 			var Lmin = -1e300
 			var current = generate_fullspace(ndim)
-			console.log("transforming " + current.coords)
+			//console.log("transforming " + current.coords)
 			current.phys_coords = transform(current.coords)
-			console.log("became " + current.phys_coords)
+			//console.log("became " + current.phys_coords)
 			current.L = likelihood(current.phys_coords)
-			console.log("with likelihood " + current.L)
+			//console.log("with likelihood " + current.L)
 			if (i == 0)
 				this.Lmax = current.L
 			else
@@ -383,7 +389,7 @@ function nested_sampler(ndim, drawer, nlive_points, transform, likelihood) {
 			this.latest_point = current
 		}
 		sort_L(this.live_points)
-		console.log("sampler: generating live points done: " + this.live_points.length)
+		//console.log("sampler: generating live points done: " + this.live_points.length)
 	}
 	this.generate_live_points = _generate_live_points
 	this.generate_live_points()
@@ -437,7 +443,7 @@ function nested_sampler(ndim, drawer, nlive_points, transform, likelihood) {
 	this.integrate_remainder = _integrate_remainder
 }
 
-function integrator(ndim, transform, likelihood, data_calc, nlive_points, tolerance, maxiter) {
+function integrator(ndim, transform, likelihood, data_calc, nlive_points, frac_remain, maxiter) {
 	var drawer = new radfriends_drawer(ndim, transform, likelihood)
 	var sampler = new nested_sampler(ndim, drawer, nlive_points, transform, likelihood)
 	this.current = sampler.next()
@@ -468,18 +474,14 @@ function integrator(ndim, transform, likelihood, data_calc, nlive_points, tolera
 		
 		sampler.integrate_remainder(this.logwidth, this.logVolremaining, this.logZ)
 		
-		if (false) {
+		if (true) {
 			var total_error = this.logZerr + sampler.remainderZerr
-			if (total_error < tolerance) {
-				console.log("integrator: tolerance reached " + total_error + " of " + tolerance)
-				return 0
-			}
-			if (sampler.remainderZerr < this.logZerr / 10.) {
-				console.log("integrator: tolerance can not be reached " + sampler.remainderZerr + " vs " + this.logZerr / 10.)
+			if (Math.exp(sampler.remainderZ - this.logZ) < frac_remain) {
+				console.log("Nested sampling integrator has walked through the most of the posterior and reached convergence.")
 				return 0
 			}
 			if (maxiter > 0 && this.iter > maxiter) {
-				console.log("integrator: max # of iter reached")
+				console.log("Nested sampling integrator has reached the number of iterations limit.")
 				return 0
 			}
 		}
@@ -535,14 +537,17 @@ MCMC.registerAlgorithm('RadFriends-NS', {
     self.live_points = [];
     self.nlive_points = 40; // number of particles
     self.iter = 0;
+    self.wait_iter = 0;
     self.reset(self);
+    self.wait_iter = 0;
   },
 
   reset: function(self) {
     // initialize chain with samples from standard normal
     self.iter = 0;
+    self.wait_iter = 0;
     self.chain = [];
-    self.integrator = new integrator(self.dim, transform, self.logDensity, null, self.nlive_points, 0.1, 0)
+    self.integrator = new integrator(self.dim, transform, self.logDensity, null, self.nlive_points, 0.01, 0)
   },
 
   attachUI: function(self, folder) {
@@ -557,16 +562,9 @@ MCMC.registerAlgorithm('RadFriends-NS', {
     
     var r = self.integrator.progress()
 
-    if (r == 0) {
-       // TODO:
-       // we are done/converged
-       // maybe the algorithm should sleep/stop or restart from scratch after a little while?
-    }
-    
     // visualise:
     //    newest drawn live point: self.integrator.current replaced lowest
     //visualizer.reset()
-    console.log("rejected: " + self.integrator.drawer.rejected)
 
     // visualise:
     //    draw the RadFriends region as overlapping circles
@@ -580,22 +578,43 @@ MCMC.registerAlgorithm('RadFriends-NS', {
     for(var i = 0; i < self.integrator.sampler.live_points.length; i++) {
       x.push(self.integrator.sampler.live_points[i].phys_coords.slice());
     }
-    console.log("live points:" + x.length + " radius: " +  rad)
+    //console.log("live points:" + x.length + " radius: " +  rad)
 
     //visualizer.queue.push({type: 'proposal', previous: previous, ns_rejected: self.integrator.drawer.rejected});
     visualizer.queue.push({type: 'radfriends-region', x: x, r: rad});
+
+    if (r == 0) {
+       // we are done/converged
+       // maybe the algorithm should sleep/stop or restart from scratch after a little while?
+       if (self.wait_iter == 0) {
+          window.alert("Done!")
+       }
+       self.wait_iter++;
+	   return;
+    }
+    console.log("rejected " + self.integrator.drawer.rejected.length + " points")
+    
     visualizer.queue.push({type: 'ns-dead-point', proposal: self.integrator.sampler.latest_point.phys_coords, deadpoint: previous, rejected: self.integrator.drawer.rejected});
     self.integrator.drawer.rejected = []
     
     var results = self.integrator.getResults()
     var weighted_samples = results[2];
-    var samples = posterior_samples(weighted_samples, weighted_samples.length);
     
-    // TODO: visualise: 
     //    samples are the current equal-weighted approximation of the posterior
     //    update histogram. These are being resampled
     //    if you can handle weighted histograms, use weighted_samples
+    // var samples = posterior_samples(weighted_samples, weighted_samples.length);
+    // self.chain = samples;
+    
+    // return all samples, with weights
+	var weights = get_posterior_weights(weighted_samples);
+	var samples = [];
+	for (var i = 0; i < weighted_samples.length; i++) {
+		samples.push(weighted_samples[i][1].phys_coords)
+	}
     self.chain = samples;
+    self.chain_weights = weights;
+
   },
 });
 
