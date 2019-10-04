@@ -131,22 +131,27 @@ Visualizer.prototype.transform = function(x) {
 Visualizer.prototype.drawHistograms = function(options) {
   if (!this.simulation.mcmc.initialized) return;
   var chain = this.simulation.mcmc.chain;
+  var has_weights = this.simulation.mcmc.hasOwnProperty('chain_weights');
   // this.histBins = Math.min(125, Math.floor(chain.length / 50) + 10);
   this.xbins = linspace(this.xmin, this.xmax, this.histBins);
   this.ybins = linspace(this.ymin, this.ymax, this.histBins);
   this.xhist = new Uint16Array(this.histBins);
   this.yhist = new Uint16Array(this.histBins);
   for (var i = 0; i < chain.length; ++i) {
+    var x, y;
+    var weight = 1;
     var x = chain[i][0];
+    var y = chain[i][1];
+    if (has_weights) {
+      weight = this.simulation.mcmc.chain_weights[i] * chain.length;
+    }
+    
     var xind = (x - this.xmin) / (this.xmax - this.xmin) * this.histBins;
     if (xind > 0 && xind < this.histBins)
-      this.xhist[xind | 0]++;
-  }
-  for (var i = 0; i < chain.length; ++i) {
-    var y = chain[i][1];
+      this.xhist[xind | 0] += weight;
     var yind = (y - this.ymin) / (this.ymax - this.ymin) * this.histBins;
     if (yind > 0 && yind < this.histBins)
-      this.yhist[yind | 0]++;
+      this.yhist[yind | 0] += weight;
   }
   var xmax = 0, ymax = 0;
   for (var i = 0; i < this.histBins; ++i) {
@@ -512,11 +517,6 @@ Visualizer.prototype.dequeue = function() {
     context.clearRect(0, 0, this.canvas.width, this.canvas.height);
     for (var i = 0; i < event.x.length; i++) {
       this.drawCircle(this.overlayCanvas, { fill: '#cfc', color: '#afa', center: event.x[i], radius: event.r, lw: 1});
-      //context.beginPath();
-      //context.strokeStyle = '#cfc';
-      //context.ellipse(event.x[i][0] * this.scale + this.origin[0], event.x[i][1] * this.scale+ this.origin[0], 2 * event.r * this.scale, 2 * event.r * this.scale, 0, 0, 2 * Math.PI, false);
-      //context.stroke();
-
     }
     for (var i = 0; i < event.x.length; i++) {
       this.drawCircle(this.overlayCanvas, { fill: '#00f', center: event.x[i], radius: 0.02, lw: 1});
