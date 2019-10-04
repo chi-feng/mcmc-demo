@@ -7,17 +7,17 @@
 Click on an algorithm below to view an interactive demo where you can change algorithm parameters on-the-fly:
 
 ### Standard MCMC methods 
-*   [Random Walk Metropolis Hastings](http://chi-feng.github.io/mcmc-demo/app.html?algorithm=RandomWalkMH&target=banana)
-*   [Adaptive Metropolis Hastings](http://chi-feng.github.io/mcmc-demo/app.html?algorithm=AdaptiveMH&target=banana) [[1]](#ref-1)
-*   [Hamiltonian Monte Carlo](http://chi-feng.github.io/mcmc-demo/app.html?algorithm=HamiltonianMC&target=banana) [[2]](#ref-2)
-*   [No-U-Turn Sampler](http://chi-feng.github.io/mcmc-demo/app.html?algorithm=NaiveNUTS&target=banana) [[2]](#ref-2)
-*   [Metropolis-adjusted Langevin Algorithm (MALA)](http://chi-feng.github.io/mcmc-demo/app.html?algorithm=MALA&target=banana) [[3]](#ref-3)
-*   [Hessian-Hamiltonian Monte Carlo (H2MC)](http://chi-feng.github.io/mcmc-demo/app.html?algorithm=H2MC&target=banana) [[4]](#ref-4)
-*   [Gibbs Sampling](http://chi-feng.github.io/mcmc-demo/app.html?algorithm=GibbsSampling&target=banana)
+*   [Random Walk Metropolis Hastings](https://chi-feng.github.io/mcmc-demo/app.html?algorithm=RandomWalkMH&target=banana)
+*   [Adaptive Metropolis Hastings](https://chi-feng.github.io/mcmc-demo/app.html?algorithm=AdaptiveMH&target=banana) [[1]](#ref-1)
+*   [Hamiltonian Monte Carlo](https://chi-feng.github.io/mcmc-demo/app.html?algorithm=HamiltonianMC&target=banana) [[2]](#ref-2)
+*   [No-U-Turn Sampler](https://chi-feng.github.io/mcmc-demo/app.html?algorithm=NaiveNUTS&target=banana) [[2]](#ref-2)
+*   [Metropolis-adjusted Langevin Algorithm (MALA)](https://chi-feng.github.io/mcmc-demo/app.html?algorithm=MALA&target=banana) [[3]](#ref-3)
+*   [Hessian-Hamiltonian Monte Carlo (H2MC)](https://chi-feng.github.io/mcmc-demo/app.html?algorithm=H2MC&target=banana) [[4]](#ref-4)
+*   [Gibbs Sampling](https://chi-feng.github.io/mcmc-demo/app.html?algorithm=GibbsSampling&target=banana)
 
 ### Non-Markovian iterative sampling methods
-*   [Stein Variational Gradient Descent (SVGD)](http://chi-feng.github.io/mcmc-demo/app.html?algorithm=SVGD&target=banana) [[5]](#ref-5)
-*   [Nested Sampling with RadFriends (RadFriends-NS)](http://chi-feng.github.io/mcmc-demo/app.html?algorithm=RadFriends-NS&target=banana) [[6]](#ref-6)
+*   [Stein Variational Gradient Descent (SVGD)](https://chi-feng.github.io/mcmc-demo/app.html?algorithm=SVGD&target=banana) [[5]](#ref-5)
+*   [Nested Sampling with RadFriends (RadFriends-NS)](https://chi-feng.github.io/mcmc-demo/app.html?algorithm=RadFriends-NS&target=banana) [[6]](#ref-6)
 
 ### References
 
@@ -44,4 +44,4 @@ Clone or download the repository and open `index.html` in your web browser. All 
 
 ### A note on linear algebra in Javascript
 1. There is a lightweight linear algebra library in `lib/linalg.core.js`
-1. It works by "overloading" the built-in Float64Array type by adding the `rows` and `columns` properties and adds many useful linear algebra methods to the object prototype. 
+1. It works by "overloading" the built-in Float64Array type by adding the `rows` and `cols` properties and adds many useful linear algebra methods to the object prototype. 
