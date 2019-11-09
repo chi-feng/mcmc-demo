@@ -1,8 +1,10 @@
 ## The Markov-chain Monte Carlo Interactive Gallery
 
+[![HitCount](http://hits.dwyl.io/chi-feng/mcmc-demo.svg)](http://hits.dwyl.io/chi-feng/mcmc-demo)
+
 *Example*: Hamiltonian Monte Carlo
 
-<img src="https://raw.githubusercontent.com/chi-feng/mcmc-demo/master/docs/hmc.gif" width="400" />
+<a href="https://chi-feng.github.io/mcmc-demo/app.html?algorithm=HamiltonianMC&target=banana" target="_blank"><img src="https://raw.githubusercontent.com/chi-feng/mcmc-demo/master/docs/hmc.gif" width="400" /></a>
 
 Click on an algorithm below to view an interactive demo where you can change algorithm parameters on-the-fly:
 
