@@ -40,7 +40,10 @@ MCMC.registerAlgorithm('HamiltonianMC', {
     }
     visualizer.queue.push({type: 'proposal', proposal: q, trajectory: trajectory, initialMomentum: p0});
 
-    var logAcceptRatio = (self.logDensity(q) - p.norm2() / 2) - (self.logDensity(q0) - p0.norm2() / 2);
+    var H0 = -self.logDensity(q0) + p0.norm2() / 2;
+    var H = -self.logDensity(q) + p.norm2() / 2;
+    var logAcceptRatio = -H + H0;
+    console.log('acceptRatio', Math.min(1, Math.exp(logAcceptRatio)));
     if (Math.random() < Math.exp(logAcceptRatio)) {
       self.chain.push(q.copy());
       visualizer.queue.push({type: 'accept', proposal: q});
