@@ -44,6 +44,10 @@ Clone or download the repository and open `index.html` in your web browser. All 
 1. Add any new visualizations to the `Visualizer.prototype.dequeue` function defined in `main/Visualizer.js`. The MCMC simulation adds visualization "events" onto an animation queue. Most common events such as accepting or rejecting a proposal have already been implemented. The renderer composites the contents of three offscreen canvases (densityCanvas, samplesCanvas, and overlayCanvas)
 1. Add a link to your algorithm in `README.md` and `index.html`
 
-### A note on linear algebra in Javascript
-1. There is a lightweight linear algebra library in `lib/linalg.core.js`
-1. It works by "overloading" the built-in Float64Array type by adding the `rows` and `cols` properties and adds many useful linear algebra methods to the object prototype. 
+## See also
+
+Interactive Gaussian process regression demo
+
+https://github.com/chi-feng/gp-demo
+
+<a href="https://github.com/chi-feng/gp-demo"><img src="https://raw.githubusercontent.com/chi-feng/gp-demo/master/screenshot.png" width="400" /></a>
