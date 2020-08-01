@@ -28,7 +28,7 @@ MCMC.registerAlgorithm('SVGD', {
     self.historical_grad = [];
     self.gradLogDensities = [];
     self.iter = 0;
-    for (var i = 0; i < self.n; i++) {
+    for (let i = 0; i < self.n; i++) {
       self.chain.push(MultivariateNormal.getSample(self.dim));
       self.gradx.push(Float64Array.zeros(self.dim,1));
       self.historical_grad.push(Float64Array.zeros(self.dim,1));
@@ -53,7 +53,7 @@ MCMC.registerAlgorithm('SVGD', {
 
     // resize samples appropriately
     if (self.n > self.chain.length) {
-      for (var i = 0; i < self.n - self.chain.length; i++) {
+      for (let i = 0; i < self.n - self.chain.length; i++) {
         self.chain.push(MultivariateNormal.getSample(self.dim));
         self.gradx.push(Float64Array.zeros(self.dim,1));
         self.historical_grad.push(Float64Array.zeros(self.dim,1));
@@ -69,17 +69,17 @@ MCMC.registerAlgorithm('SVGD', {
     var n = self.chain.length;
 
     // precompute log densities
-    for (var i = 0; i < n; i++) {
+    for (let i = 0; i < n; i++) {
       self.gradLogDensities[i] = self.gradLogDensity(self.chain[i]);
-      for (var k = 0; k < self.dim; k++) { self.gradx[i][k] = 0; }
+      for (let k = 0; k < self.dim; k++) { self.gradx[i][k] = 0; }
     }
 
     // pairwise distances trick
     var dist2 = new Float64Array(n * n);
-    for (var i = 0; i < n; i++) {
-      for (var j = 0; j < i; j++) {
+    for (let i = 0; i < n; i++) {
+      for (let j = 0; j < i; j++) {
         var delta = 0;
-        for (var k = 0; k < self.dim; k++)
+        for (let k = 0; k < self.dim; k++)
           delta += Math.pow(self.chain[i][k] - self.chain[j][k], 2);
         dist2[i * n + j] = delta;
         dist2[j * n + i] = delta;
@@ -94,29 +94,29 @@ MCMC.registerAlgorithm('SVGD', {
     }
 
     // compute gradient
-    for (var i = 0; i < n; i++) {
-      for (var j = 0; j < n; j++) {
+    for (let i = 0; i < n; i++) {
+      for (let j = 0; j < n; j++) {
         var rbf = Math.exp(-dist2[i*n+j]  / (self.h));
-        for (var k = 0; k < self.dim; k++) {
+        for (let k = 0; k < self.dim; k++) {
           var grad_rbf = (self.chain[i][k] - self.chain[j][k]) * 2 * rbf / (self.h);
           self.gradx[i][k] += self.gradLogDensities[j][k] * rbf + grad_rbf;
         }
       }
-      for (var k = 0; k < self.dim; k++) { self.gradx[i][k] /= n; }
+      for (let k = 0; k < self.dim; k++) { self.gradx[i][k] /= n; }
     }
 
     // adagrad
     if (self.use_adagrad) {
-      for (var i = 0; i < n; i++)
-        for (var k = 0; k < self.dim; k++)
+      for (let i = 0; i < n; i++)
+        for (let k = 0; k < self.dim; k++)
           self.historical_grad[i][k] = self.alpha * self.historical_grad[i][k] + (1 - self.alpha) * Math.pow(self.gradx[i][k], 2);
-      for (var i = 0; i < n; i++)
-        for (var k = 0; k < self.dim; k++)
+      for (let i = 0; i < n; i++)
+        for (let k = 0; k < self.dim; k++)
           self.gradx[i][k] /= (self.fudge_factor + Math.sqrt(self.historical_grad[i][k]));
     }
 
-    for (var i = 0; i < n; i++) {
-      for (var k = 0; k < self.dim; k++) {
+    for (let i = 0; i < n; i++) {
+      for (let k = 0; k < self.dim; k++) {
         self.gradx[i][k] *= self.epsilon;
       }
     }
@@ -124,7 +124,7 @@ MCMC.registerAlgorithm('SVGD', {
     visualizer.queue.push({ type: 'svgd-step', x: self.chain, gradx: self.gradx, h: self.h});
 
     // update particles
-    for (var i = 0; i < n; i++) {
+    for (let i = 0; i < n; i++) {
       self.chain[i].increment(self.gradx[i]);
     }
 
