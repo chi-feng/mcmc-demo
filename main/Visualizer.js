@@ -300,6 +300,16 @@ class Visualizer {
       var drawProposalArrow = true;
       var drawProposalCov = true;
 
+      // draw proposal direction vector (for DE-MCMC)
+      if (event.hasOwnProperty("inspiration")) {
+        this.drawArrow(this.overlayCanvas, {
+          from: event.inspiration.from,
+          to: event.inspiration.to,
+          color: this.proposalColor,
+          lw: 1
+        });
+      }
+
       // draw initial momentum vector (for Hamiltonian MC)
       if (event.hasOwnProperty('initialMomentum')) {
         var to = last.add(event.initialMomentum);
