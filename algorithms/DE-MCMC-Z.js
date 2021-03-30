@@ -1,11 +1,10 @@
-'use strict';
+"use strict";
 
-MCMC.registerAlgorithm('DE-MCMC-Z', {
-
-  description: 'Differential Evolution Metropolis (Z)',
+MCMC.registerAlgorithm("DE-MCMC-Z", {
+  description: "Differential Evolution Metropolis (Z)",
 
   about: () => {
-    window.open('https://link.springer.com/article/10.1007/s11222-008-9104-9');
+    window.open("https://link.springer.com/article/10.1007/s11222-008-9104-9");
   },
 
   init: (self) => {
@@ -18,8 +17,8 @@ MCMC.registerAlgorithm('DE-MCMC-Z', {
   },
 
   attachUI: (self, folder) => {
-    folder.add(self, 'lambda', 0.1, 3).step(0.1).name('Lambda &lambda;');
-    folder.add(self, 'scaling', 0.001, 0.2).step(0.01).name('Scaling &epsilon;');
+    folder.add(self, "lambda", 0.1, 3).step(0.1).name("Lambda &lambda;");
+    folder.add(self, "scaling", 0.001, 0.2).step(0.01).name("Scaling &epsilon;");
     folder.open();
   },
 
@@ -28,7 +27,7 @@ MCMC.registerAlgorithm('DE-MCMC-Z', {
     var iz1 = Math.floor(Math.random() * N);
     var iz2 = Math.floor(Math.random() * N);
     if (N > 1) {
-      while (iz2 == iz1){
+      while (iz2 == iz1) {
         iz2 = Math.floor(Math.random() * N);
       }
     }
@@ -40,23 +39,22 @@ MCMC.registerAlgorithm('DE-MCMC-Z', {
     var epsilon = epsilonDist.getSample();
     var vec = z2.subtract(z1);
     var proposal = q0.add(vec.scale(self.lambda)).add(epsilon);
-    
+
     const logAcceptRatio = self.logDensity(proposal) - self.logDensity(self.chain.last());
     visualizer.queue.push({
-        type: 'proposal',
-        proposal: proposal,
-        inspiration: {
-          from: z1,
-          to: z2
-        }
+      type: "proposal",
+      proposal: proposal,
+      inspiration: {
+        from: z1,
+        to: z2,
+      },
     });
     if (Math.random() < Math.exp(logAcceptRatio)) {
       self.chain.push(proposal);
-      visualizer.queue.push({ type: 'accept', proposal: proposal });
+      visualizer.queue.push({ type: "accept", proposal: proposal });
     } else {
       self.chain.push(q0);
-      visualizer.queue.push({ type: 'reject', proposal: proposal });
+      visualizer.queue.push({ type: "reject", proposal: proposal });
     }
   },
-
 });

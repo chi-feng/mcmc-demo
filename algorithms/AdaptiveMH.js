@@ -1,11 +1,10 @@
-'use strict';
+"use strict";
 
-MCMC.registerAlgorithm('AdaptiveMH', {
-
-  description: 'Adaptive Metropolis-Hastings',
+MCMC.registerAlgorithm("AdaptiveMH", {
+  description: "Adaptive Metropolis-Hastings",
 
   about: () => {
-    window.open('http://projecteuclid.org/euclid.bj/1080222083');
+    window.open("http://projecteuclid.org/euclid.bj/1080222083");
   },
 
   init: (self) => {
@@ -23,7 +22,7 @@ MCMC.registerAlgorithm('AdaptiveMH', {
   },
 
   attachUI: (self, folder) => {
-    folder.add(self, 'adaptProbability', 0, 1).step(0.05).name('Adapt Probability');
+    folder.add(self, "adaptProbability", 0, 1).step(0.05).name("Adapt Probability");
     folder.open();
   },
 
@@ -32,23 +31,28 @@ MCMC.registerAlgorithm('AdaptiveMH', {
     // update proposal covariance using rank-1 covariance update
     if (self.chain.length % self.adaptStride == 0) {
       for (let i = 0; i < self.adaptStride; ++i) {
-        self.chainScatter.increment(Float64Array.outer(self.chain[lastIndex-i], self.chain[lastIndex-i]));
-        self.chainSum.increment(self.chain[lastIndex-i]);
-        const covariance = self.chainScatter.subtract(Float64Array.outer(self.chainSum, self.chainSum).scale(1.0 / self.chain.length)).scale(1.0 / self.chain.length);
-        self.amDist.setCovariance(covariance.scale(2.38 * 2.38 / self.dim));
+        self.chainScatter.increment(Float64Array.outer(self.chain[lastIndex - i], self.chain[lastIndex - i]));
+        self.chainSum.increment(self.chain[lastIndex - i]);
+        const covariance = self.chainScatter
+          .subtract(Float64Array.outer(self.chainSum, self.chainSum).scale(1.0 / self.chain.length))
+          .scale(1.0 / self.chain.length);
+        self.amDist.setCovariance(covariance.scale((2.38 * 2.38) / self.dim));
       }
     }
-    const proposalDist = (Math.random() < self.adaptProbability) ? self.amDist : self.mhDist;
+    const proposalDist = Math.random() < self.adaptProbability ? self.amDist : self.mhDist;
     const proposal = self.chain.last().add(proposalDist.getSample());
     const logAcceptRatio = self.logDensity(proposal) - self.logDensity(self.chain.last());
-    visualizer.queue.push({type: 'proposal', proposal: proposal, proposalCov: proposalDist.cov});
+    visualizer.queue.push({
+      type: "proposal",
+      proposal: proposal,
+      proposalCov: proposalDist.cov,
+    });
     if (Math.random() < Math.exp(logAcceptRatio)) {
       self.chain.push(proposal);
-      visualizer.queue.push({type: 'accept', proposal: proposal});
+      visualizer.queue.push({ type: "accept", proposal: proposal });
     } else {
       self.chain.push(self.chain.last());
-      visualizer.queue.push({type: 'reject', proposal: proposal});
+      visualizer.queue.push({ type: "reject", proposal: proposal });
     }
-  }
-
+  },
 });
