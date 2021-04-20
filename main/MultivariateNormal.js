@@ -2,30 +2,27 @@
 
 class MultivariateNormal {
   constructor(mean, cov) {
-    if (mean.hasOwnProperty('mean')) {
+    if (mean.hasOwnProperty("mean")) {
       const params = mean;
       this.mean = params.mean;
       this.dim = this.mean.length;
       this.constant = -0.5 * Math.log(2.0 * Math.PI) * this.dim;
-      if (params.hasOwnProperty('covL') && !params.hasOwnProperty('cov')) {
+      if (params.hasOwnProperty("covL") && !params.hasOwnProperty("cov")) {
         this.covL = params.covL;
         this.cov = this.covL.multiply(this.covL.transpose());
-      }
-      else {
+      } else {
         this.cov = params.cov;
       }
-      if (params.hasOwnProperty('covL') && params.hasOwnProperty('logDet')) {
+      if (params.hasOwnProperty("covL") && params.hasOwnProperty("logDet")) {
         this.covL = params.covL;
         this.logDet = params.logDet;
-      }
-      else {
+      } else {
         this.setCovariance(params.cov);
       }
-      if (params.hasOwnProperty('invCov')) {
+      if (params.hasOwnProperty("invCov")) {
         this.invCov = params.invCov;
       }
-    }
-    else {
+    } else {
       this.mean = mean;
       this.dim = mean.rows;
       this.setCovariance(cov);
@@ -44,7 +41,11 @@ class MultivariateNormal {
   }
   logDensity(x) {
     const diff = this.mean.subtract(x);
-    return this.constant - this.logDet - 0.5 * (this.covL.bsolve_inplace(this.covL.fsolve_inplace(diff), { transpose: true })).norm2();
+    return (
+      this.constant -
+      this.logDet -
+      0.5 * this.covL.bsolve_inplace(this.covL.fsolve_inplace(diff), { transpose: true }).norm2()
+    );
   }
   gradLogDensity(x) {
     const diff = x.subtract(this.mean);
@@ -52,10 +53,16 @@ class MultivariateNormal {
     return this.covL.bsolve_inplace(this.covL.fsolve_inplace(diff), { transpose: true }).scale(-1);
   }
   toString() {
-    return 'mean: ' + this.mean.transpose().toString() +
-      '\ncov:  \n' + this.cov.toString() +
-      '\ncovL: \n' + this.covL.toString() +
-      '\nlogDet: ' + this.logDet;
+    return (
+      "mean: " +
+      this.mean.transpose().toString() +
+      "\ncov:  \n" +
+      this.cov.toString() +
+      "\ncovL: \n" +
+      this.covL.toString() +
+      "\nlogDet: " +
+      this.logDet
+    );
   }
   static getNormal() {
     let x, y, w;
@@ -64,17 +71,10 @@ class MultivariateNormal {
       y = Math.random() * 2 - 1;
       w = x * x + y * y;
     } while (w >= 1.0);
-    return x * Math.sqrt(-2 * Math.log(w) / w);
+    return x * Math.sqrt((-2 * Math.log(w)) / w);
   }
   static getSample(dim) {
     const dist = new MultivariateNormal(zeros(dim), eye(dim));
     return dist.getSample();
   }
 }
-
-
-
-
-
-
-

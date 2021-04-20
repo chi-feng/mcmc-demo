@@ -1,15 +1,14 @@
-'use strict';
+"use strict";
 
-MCMC.registerAlgorithm('SVGD', {
+MCMC.registerAlgorithm("SVGD", {
+  description: "Stein Variational Gradient Descent",
 
-  description: 'Stein Variational Gradient Descent',
-
-  about: function() {
-    window.open('http://www.cs.dartmouth.edu/~dartml/project.html?p=vgd');
+  about: function () {
+    window.open("http://www.cs.dartmouth.edu/~dartml/project.html?p=vgd");
   },
 
-  init: function(self) {
-    self.chain = [ ];
+  init: function (self) {
+    self.chain = [];
     self.n = 200; // number of particlese
     self.epsilon = 0.01; // step size
     self.h = 0.15; // bandwidth
@@ -21,42 +20,46 @@ MCMC.registerAlgorithm('SVGD', {
     self.reset(self);
   },
 
-  reset: function(self) {
+  reset: function (self) {
     // initialize chain with samples from standard normal
-    self.chain = [ ];
+    self.chain = [];
     self.gradx = [];
     self.historical_grad = [];
     self.gradLogDensities = [];
     self.iter = 0;
     for (let i = 0; i < self.n; i++) {
       self.chain.push(MultivariateNormal.getSample(self.dim));
-      self.gradx.push(Float64Array.zeros(self.dim,1));
-      self.historical_grad.push(Float64Array.zeros(self.dim,1));
+      self.gradx.push(Float64Array.zeros(self.dim, 1));
+      self.historical_grad.push(Float64Array.zeros(self.dim, 1));
       self.gradLogDensities.push(0);
     }
   },
 
-  attachUI: function(self, folder) {
-    folder.add(self, 'use_median').name('Median heuristic').listen();
-    folder.add(self, 'h', 0.05, 2).step(0.05).name('bandwidth').listen().onChange(function(value) {
-      self.use_median = false;
-    });
-    folder.add(self, 'use_adagrad').name('Adagrad');
-    folder.add(self, 'epsilon', 0.001, 0.1).step(0.001).name('stepsize');
+  attachUI: function (self, folder) {
+    folder.add(self, "use_median").name("Median heuristic").listen();
+    folder
+      .add(self, "h", 0.05, 2)
+      .step(0.05)
+      .name("bandwidth")
+      .listen()
+      .onChange(function (value) {
+        self.use_median = false;
+      });
+    folder.add(self, "use_adagrad").name("Adagrad");
+    folder.add(self, "epsilon", 0.001, 0.1).step(0.001).name("stepsize");
     // folder.add(self, 'alpha', 0.01, 1.0).step(0.01).name('alpha');
     // folder.add(self, 'fudge_factor', 0.0001, 0.05).step(0.0001).name('fudge_factor');
-    folder.add(self, 'n', 10, 400).step(1).name('numParticles');
+    folder.add(self, "n", 10, 400).step(1).name("numParticles");
     folder.open();
   },
 
-  step: function(self, visualizer) {
-
+  step: function (self, visualizer) {
     // resize samples appropriately
     if (self.n > self.chain.length) {
       for (let i = 0; i < self.n - self.chain.length; i++) {
         self.chain.push(MultivariateNormal.getSample(self.dim));
-        self.gradx.push(Float64Array.zeros(self.dim,1));
-        self.historical_grad.push(Float64Array.zeros(self.dim,1));
+        self.gradx.push(Float64Array.zeros(self.dim, 1));
+        self.historical_grad.push(Float64Array.zeros(self.dim, 1));
         self.gradLogDensities.push(0);
       }
     } else if (self.n < self.chain.length) {
@@ -71,7 +74,9 @@ MCMC.registerAlgorithm('SVGD', {
     // precompute log densities
     for (let i = 0; i < n; i++) {
       self.gradLogDensities[i] = self.gradLogDensity(self.chain[i]);
-      for (let k = 0; k < self.dim; k++) { self.gradx[i][k] = 0; }
+      for (let k = 0; k < self.dim; k++) {
+        self.gradx[i][k] = 0;
+      }
     }
 
     // pairwise distances trick
@@ -79,8 +84,7 @@ MCMC.registerAlgorithm('SVGD', {
     for (let i = 0; i < n; i++) {
       for (let j = 0; j < i; j++) {
         var delta = 0;
-        for (let k = 0; k < self.dim; k++)
-          delta += Math.pow(self.chain[i][k] - self.chain[j][k], 2);
+        for (let k = 0; k < self.dim; k++) delta += Math.pow(self.chain[i][k] - self.chain[j][k], 2);
         dist2[i * n + j] = delta;
         dist2[j * n + i] = delta;
       }
@@ -89,30 +93,33 @@ MCMC.registerAlgorithm('SVGD', {
     if (self.use_median) {
       var dist2copy = new Float64Array(dist2);
       dist2copy.sort();
-      var median = dist2copy[Math.floor(dist2copy.length/2)];
+      var median = dist2copy[Math.floor(dist2copy.length / 2)];
       self.h = median / Math.log(n);
     }
 
     // compute gradient
     for (let i = 0; i < n; i++) {
       for (let j = 0; j < n; j++) {
-        var rbf = Math.exp(-dist2[i*n+j]  / (self.h));
+        var rbf = Math.exp(-dist2[i * n + j] / self.h);
         for (let k = 0; k < self.dim; k++) {
-          var grad_rbf = (self.chain[i][k] - self.chain[j][k]) * 2 * rbf / (self.h);
+          var grad_rbf = ((self.chain[i][k] - self.chain[j][k]) * 2 * rbf) / self.h;
           self.gradx[i][k] += self.gradLogDensities[j][k] * rbf + grad_rbf;
         }
       }
-      for (let k = 0; k < self.dim; k++) { self.gradx[i][k] /= n; }
+      for (let k = 0; k < self.dim; k++) {
+        self.gradx[i][k] /= n;
+      }
     }
 
     // adagrad
     if (self.use_adagrad) {
       for (let i = 0; i < n; i++)
         for (let k = 0; k < self.dim; k++)
-          self.historical_grad[i][k] = self.alpha * self.historical_grad[i][k] + (1 - self.alpha) * Math.pow(self.gradx[i][k], 2);
+          self.historical_grad[i][k] =
+            self.alpha * self.historical_grad[i][k] + (1 - self.alpha) * Math.pow(self.gradx[i][k], 2);
       for (let i = 0; i < n; i++)
         for (let k = 0; k < self.dim; k++)
-          self.gradx[i][k] /= (self.fudge_factor + Math.sqrt(self.historical_grad[i][k]));
+          self.gradx[i][k] /= self.fudge_factor + Math.sqrt(self.historical_grad[i][k]);
     }
 
     for (let i = 0; i < n; i++) {
@@ -121,7 +128,12 @@ MCMC.registerAlgorithm('SVGD', {
       }
     }
 
-    visualizer.queue.push({ type: 'svgd-step', x: self.chain, gradx: self.gradx, h: self.h});
+    visualizer.queue.push({
+      type: "svgd-step",
+      x: self.chain,
+      gradx: self.gradx,
+      h: self.h,
+    });
 
     // update particles
     for (let i = 0; i < n; i++) {
@@ -129,7 +141,5 @@ MCMC.registerAlgorithm('SVGD', {
     }
 
     self.iter++;
-
-  }
-
+  },
 });
