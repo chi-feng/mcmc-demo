@@ -154,7 +154,7 @@ MCMC.targets["funnel"] = {
       s1 = Math.exp(x[0] / 2);
     return matrix([
       [dfdx(x[1], m1, Math.exp(x[0] / 2))],
-      [dfds(x[0], m0, s0) + 0.5 * Math.exp(x[0] / 2) * dfds(x[1], m1, Math.exp(x[0] / 2))],
+      [dfdx(x[0], m0, s0) + 0.5 * Math.exp(x[0] / 2) * dfds(x[1], m1, Math.exp(x[0] / 2))],
     ]);
   },
 };
