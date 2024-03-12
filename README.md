@@ -52,3 +52,14 @@ Interactive Gaussian process regression demo
 https://github.com/chi-feng/gp-demo
 
 <a href="https://github.com/chi-feng/gp-demo"><img src="https://raw.githubusercontent.com/chi-feng/gp-demo/master/screenshot.png" width="400" /></a>
+
+## Star History
+
+<a href="https://star-history.com/#chi-feng/mcmc-demo&Date">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=chi-feng/mcmc-demo&type=Date&theme=dark" />
+    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=chi-feng/mcmc-demo&type=Date" />
+    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=chi-feng/mcmc-demo&type=Date" />
+  </picture>
+</a>
+
