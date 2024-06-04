@@ -1,5 +1,8 @@
 "use strict";
 
+/**
+ * Class representing a simulation for MCMC algorithms and target distributions.
+ */
 class Simulation {
   constructor() {
     this.mcmc = {
@@ -12,46 +15,58 @@ class Simulation {
     this.tweeningDelay = 0;
     this.autoplay = true;
   }
+
+  /**
+   * Set the MCMC algorithm to be used in the simulation.
+   * @param {string} algorithmName - Name of the algorithm to set.
+   */
   setAlgorithm(algorithmName) {
-    console.log("Setting algorithm to " + algorithmName);
+    console.log(`Setting algorithm to ${algorithmName}`);
     this.hasAlgorithm = true;
     this.algorithm = algorithmName;
     this.mcmc.initialized = false;
-    this.mcmc.description = MCMC.algorithms[algorithmName].description;
-    this.mcmc.init = MCMC.algorithms[algorithmName].init;
-    this.mcmc.reset = MCMC.algorithms[algorithmName].reset;
-    this.mcmc.step = MCMC.algorithms[algorithmName].step;
-    this.mcmc.attachUI = MCMC.algorithms[algorithmName].attachUI;
-    this.mcmc.about = MCMC.algorithms[algorithmName].about;
+    const algorithm = MCMC.algorithms[algorithmName];
+    this.mcmc.description = algorithm.description;
+    this.mcmc.init = algorithm.init;
+    this.mcmc.reset = algorithm.reset;
+    this.mcmc.step = algorithm.step;
+    this.mcmc.attachUI = algorithm.attachUI;
+    this.mcmc.about = algorithm.about;
+
     document.getElementById("info").innerHTML = this.mcmc.description;
+
     if (this.hasAlgorithm && this.hasTarget) {
-      if (this.mcmc.initialized == false) this.mcmc.init(this.mcmc);
+      if (!this.mcmc.initialized) this.mcmc.init(this.mcmc);
       this.mcmc.reset(this.mcmc);
       this.mcmc.initialized = true;
       this.visualizer.resize();
     }
   }
+
+  /**
+   * Set the target distribution for the simulation.
+   * @param {string} targetName - Name of the target distribution to set.
+   */
   setTarget(targetName) {
-    console.log("Setting target to " + targetName, MCMC.targets[targetName]);
+    console.log(`Setting target to ${targetName}`, MCMC.targets[targetName]);
     this.hasTarget = true;
     this.target = targetName;
-    this.mcmc.logDensity = MCMC.targets[targetName].logDensity;
-    this.mcmc.gradLogDensity = MCMC.targets[targetName].gradLogDensity;
+    const target = MCMC.targets[targetName];
+    this.mcmc.logDensity = target.logDensity;
+    this.mcmc.gradLogDensity = target.gradLogDensity;
 
-    // update visualizer extents
-    const options = { ...MCMC.targets[targetName] };
-    this.visualizer.xmin = options.xmin;
-    this.visualizer.xmax = options.xmax;
+    // Update visualizer extents
+    this.visualizer.xmin = target.xmin;
+    this.visualizer.xmax = target.xmax;
     this.visualizer.resize();
 
-    // TODO: actually derive Hessians
-    // in the meantime, use finite difference :sadface:
-    var grad = this.mcmc.gradLogDensity,
-      N = this.mcmc.dim;
-    var h = 1e-8;
-    this.mcmc.hessLogDensity = function (x) {
-      var hess = zeros(N, N);
-      var Delta = eye(N, N).scale(h);
+    // Use finite differences to approximate Hessian
+    const grad = this.mcmc.gradLogDensity;
+    const N = this.mcmc.dim;
+    const h = 1e-8;
+    this.mcmc.hessLogDensity = (x) => {
+      const hess = zeros(N, N);
+      const Delta = eye(N, N).scale(h);
       for (let i = 0; i < N; ++i) {
         for (let j = 0; j < N; ++j) {
           hess[i * N + j] =
@@ -62,81 +77,107 @@ class Simulation {
       return hess;
     };
 
-    // update contours
-    const xmin = this.visualizer.xmin;
-    const xmax = this.visualizer.xmax;
-    const ymin = this.visualizer.ymin;
-    const ymax = this.visualizer.ymax;
-
+    // Update contours
+    const { xmin, xmax, ymin, ymax } = this.visualizer;
     const nx = 480,
       ny = 256,
       nz = 7;
-    this.computeContours(this.mcmc.logDensity, xmin, xmax, ymin, ymax, nx, ny, nz);
+    this.computeContours(
+      this.mcmc.logDensity,
+      xmin,
+      xmax,
+      ymin,
+      ymax,
+      nx,
+      ny,
+      nz
+    );
 
     if (this.mcmc.initialized) this.mcmc.reset(this.mcmc);
     if (this.hasAlgorithm && this.hasTarget) {
-      if (this.mcmc.initialized == false) this.mcmc.init(this.mcmc);
+      if (!this.mcmc.initialized) this.mcmc.init(this.mcmc);
       this.mcmc.reset(this.mcmc);
       this.mcmc.initialized = true;
       this.visualizer.resize();
     }
   }
+
+  /**
+   * Compute contours for the log density function.
+   * @param {Function} logDensity - Log density function.
+   * @param {number} xmin - Minimum x value.
+   * @param {number} xmax - Maximum x value.
+   * @param {number} ymin - Minimum y value.
+   * @param {number} ymax - Maximum y value.
+   * @param {number} nx - Number of x grid points.
+   * @param {number} ny - Number of y grid points.
+   * @param {number} nz - Number of contour levels.
+   */
   computeContours(logDensity, xmin, xmax, ymin, ymax, nx, ny, nz) {
-    // get contours
-    var x = linspace(xmin, xmax, nx);
-    var y = linspace(ymin, ymax, ny);
-    var data = [];
-    var point = zeros(2, 1);
-    var min = 1e10,
+    const x = linspace(xmin, xmax, nx);
+    const y = linspace(ymin, ymax, ny);
+    const data = [];
+    const point = zeros(2, 1);
+    let min = 1e10,
       max = 0;
+
     for (let i = 0; i < nx; ++i) {
       data.push([]);
       point[0] = x[i];
       for (let j = 0; j < ny; ++j) {
         point[1] = y[j];
-        var val = Math.exp(logDensity(point));
+        const val = Math.exp(logDensity(point));
         data[i].push(val);
         if (val > max) max = val;
         if (val < min) min = val;
       }
     }
-    var z = linspace(min + 0.01 * (max - min), max - 0.02 * (max - min), nz);
-    var c = new Conrec();
+
+    const z = linspace(min + 0.01 * (max - min), max - 0.02 * (max - min), nz);
+    const c = new Conrec();
     c.contour(data, 0, nx - 1, 0, ny - 1, x, y, nz, z);
-    var contours = c.contourList();
+    const contours = c.contourList();
+
     this.mcmc.contours = [];
     this.mcmc.contourData = data;
     this.mcmc.contourLevels = z;
-    for (let i = 0; i < contours.length; ++i) {
-      var contour = [];
-      for (let j = 0; j < contours[i].length; ++j) contour.push([contours[i][j].x, contours[i][j].y]);
-      this.mcmc.contours.push(contour);
+    for (const contour of contours) {
+      this.mcmc.contours.push(contour.map((pt) => [pt.x, pt.y]));
     }
 
-    // numerically integrate to get marginal densities
+    // Numerically integrate to get marginal densities
     this.mcmc.xgrid = x;
     this.mcmc.ygrid = y;
     this.mcmc.marginals = [zeros(nx), zeros(ny)];
-    for (let i = 0; i < nx; ++i) {
-      for (let j = 0; j < ny; ++j) this.mcmc.marginals[0][i] += data[i][j];
-      this.mcmc.marginals[0][i];
-    }
-    this.mcmc.marginals[0] = this.mcmc.marginals[0].scale(1.0 / this.mcmc.marginals[0].maxCoeff());
-    for (let j = 0; j < ny; ++j) {
-      for (let i = 0; i < nx; ++i) this.mcmc.marginals[1][j] += data[i][j];
-      this.mcmc.marginals[1][j];
-    }
-    this.mcmc.marginals[1] = this.mcmc.marginals[1].scale(1.0 / this.mcmc.marginals[1].maxCoeff());
 
-    var buffer = document.createElement("canvas");
-    buffer.width = nx;
-    buffer.height = ny;
-    var context = buffer.getContext("2d");
-    var image = context.createImageData(nx, ny);
+    for (let i = 0; i < nx; ++i) {
+      for (let j = 0; j < ny; ++j) {
+        this.mcmc.marginals[0][i] += data[i][j];
+      }
+    }
+    this.mcmc.marginals[0] = this.mcmc.marginals[0].scale(
+      1.0 / this.mcmc.marginals[0].maxCoeff()
+    );
+
     for (let j = 0; j < ny; ++j) {
       for (let i = 0; i < nx; ++i) {
-        var base = 4 * ((ny - 1 - j) * nx + i);
-        var value = Math.sqrt((data[i][j] - min) / (max - min)) * 255;
+        this.mcmc.marginals[1][j] += data[i][j];
+      }
+    }
+    this.mcmc.marginals[1] = this.mcmc.marginals[1].scale(
+      1.0 / this.mcmc.marginals[1].maxCoeff()
+    );
+
+    const buffer = document.createElement("canvas");
+    buffer.width = nx;
+    buffer.height = ny;
+    const context = buffer.getContext("2d");
+    const image = context.createImageData(nx, ny);
+
+    for (let j = 0; j < ny; ++j) {
+      for (let i = 0; i < nx; ++i) {
+        const base = 4 * ((ny - 1 - j) * nx + i);
+        const value = Math.sqrt((data[i][j] - min) / (max - min)) * 255;
         image.data[base] = 102;
         image.data[base + 1] = 153;
         image.data[base + 2] = 187;
@@ -146,47 +187,63 @@ class Simulation {
     context.putImageData(image, 0, 0);
     this.mcmc.densityCanvas = buffer;
   }
+
+  /**
+   * Reset the MCMC simulation.
+   */
   reset() {
     this.mcmc.reset(this.mcmc);
     this.visualizer.resize();
   }
+
+  /**
+   * Perform a simulation step.
+   */
   step() {
-    if (this.visualizer.queue.length == 0) this.mcmc.step(this.mcmc, this.visualizer);
-    if (this.visualizer.animateProposal == false) {
-      while (this.visualizer.queue.length > 0) this.visualizer.dequeue();
+    if (this.visualizer.queue.length === 0) {
+      this.mcmc.step(this.mcmc, this.visualizer);
+    }
+    if (!this.visualizer.animateProposal) {
+      while (this.visualizer.queue.length > 0) {
+        this.visualizer.dequeue();
+      }
     } else {
       this.visualizer.dequeue();
     }
     this.visualizer.render();
   }
+
+  /**
+   * Animate the simulation.
+   */
   animate() {
-    var self = this;
-    if (this.autoplay || this.visualizer.tweening) this.step();
-    if (this.visualizer.tweening) {
-      setTimeout(function () {
-        requestAnimationFrame(function () {
-          self.animate();
-        });
-      }, self.tweeningDelay);
-    } else {
-      setTimeout(function () {
-        requestAnimationFrame(function () {
-          self.animate();
-        });
-      }, self.delay);
+    const self = this;
+    if (this.autoplay || this.visualizer.tweening) {
+      this.step();
     }
+    setTimeout(
+      () => {
+        requestAnimationFrame(() => {
+          self.animate();
+        });
+      },
+      this.visualizer.tweening ? self.tweeningDelay : self.delay
+    );
   }
 }
-var viz, sim, gui;
 
+let viz, sim, gui;
+
+/**
+ * Get URL query parameters as an object.
+ * @returns {Object} URL query parameters.
+ */
 function getUrlVars() {
-  var vars = [],
-    pair;
-  var pairs = window.location.search.substr(1).split("&");
-  for (let i = 0; i < pairs.length; i++) {
-    pair = pairs[i].split("=");
-    vars.push(pair[0]);
-    vars[pair[0]] = pair[1] && decodeURIComponent(pair[1].replace(/\+/g, " "));
+  const vars = {};
+  const pairs = window.location.search.substr(1).split("&");
+  for (const pair of pairs) {
+    const [key, value] = pair.split("=");
+    vars[key] = value && decodeURIComponent(value.replace(/\+/g, " "));
   }
   return vars;
 }
@@ -201,29 +258,38 @@ window.onload = function () {
   sim.visualizer = viz;
   viz.simulation = sim;
 
-  var algorithm = MCMC.algorithmNames[0];
-  var target = MCMC.targetNames[0];
-  var seed = Math.seedrandom();
+  let algorithm = MCMC.algorithmNames[0];
+  let target = MCMC.targetNames[0];
+  let seed = Math.seedrandom();
 
+  /**
+   * Parse a boolean value from a string.
+   * @param {string} value - String to parse.
+   * @returns {boolean} Parsed boolean.
+   */
   function parseBool(value) {
-    return value == "true";
+    return value === "true";
   }
 
-  if (window.location.search != "") {
-    var queryParams = getUrlVars();
+  if (window.location.search !== "") {
+    const queryParams = getUrlVars();
 
-    if ("algorithm" in queryParams && MCMC.algorithmNames.indexOf(queryParams["algorithm"]) > -1) {
-      algorithm = queryParams["algorithm"];
+    if (
+      queryParams.algorithm &&
+      MCMC.algorithmNames.includes(queryParams.algorithm)
+    ) {
+      algorithm = queryParams.algorithm;
     }
-    if ("target" in queryParams && MCMC.targetNames.indexOf(queryParams["target"]) > -1) {
-      target = queryParams["target"];
+    if (queryParams.target && MCMC.targetNames.includes(queryParams.target)) {
+      target = queryParams.target;
     }
-    if ("seed" in queryParams) {
-      // reseed
-      seed = Math.seedrandom(queryParams["seed"]);
-      console.log("Setting seed to " + seed);
+    if (queryParams.seed) {
+      // Reseed
+      seed = Math.seedrandom(queryParams.seed);
+      console.log(`Setting seed to ${seed}`);
     }
-    let config = [
+
+    const config = [
       ["delay", parseInt, sim, "sim"],
       ["tweeningDelay", parseInt, sim, "sim"],
       ["autoplay", parseBool, sim, "sim"],
@@ -232,14 +298,11 @@ window.onload = function () {
       ["showHistograms", parseBool, viz, "viz"],
       ["histBins", parseInt, viz, "viz"],
     ];
-    for (let i = 0; i < config.length; i++) {
-      let param = config[i][0],
-        parse = config[i][1],
-        obj = config[i][2],
-        objName = config[i][3];
+
+    for (const [param, parse, obj, objName] of config) {
       if (param in queryParams) {
-        let value = parse(queryParams[param]);
-        console.log("Setting " + objName + "." + param + " to " + value);
+        const value = parse(queryParams[param]);
+        console.log(`Setting ${objName}.${param} to ${value}`);
         obj[param] = value;
       }
     }
@@ -247,46 +310,41 @@ window.onload = function () {
 
   sim.setAlgorithm(algorithm);
   sim.setTarget(target);
-
   sim.mcmc.init(sim.mcmc);
-  window.onresize = function () {
+
+  window.onresize = () => {
     viz.resize();
   };
 
   gui = new dat.GUI({ width: 300 });
 
-  var f1 = gui.addFolder("Simulation options");
+  const f1 = gui.addFolder("Simulation options");
   f1.add(sim, "algorithm", MCMC.algorithmNames)
     .name("Algorithm")
-    .onChange(function (value) {
+    .onChange((value) => {
       sim.setAlgorithm(value);
       gui.removeFolder("Algorithm Options");
-      var f = gui.addFolder("Algorithm Options");
+      const f = gui.addFolder("Algorithm Options");
       sim.mcmc.attachUI(sim.mcmc, f);
-      // f.add(sim.mcmc, 'about').name('About...');
       f.open();
     });
   f1.add(sim, "target", MCMC.targetNames)
     .name("Target distribution")
-    .onChange(function (value) {
+    .onChange((value) => {
       sim.setTarget(value);
     });
   f1.add(sim, "autoplay").name("Autoplay");
   f1.add(sim, "delay", 0, 1000)
     .name("Autoplay delay")
-    .onChange(function (value) {
-      if (value == 0) {
-        viz.animateProposal = false;
-      } else {
-        viz.animateProposal = true;
-      }
+    .onChange((value) => {
+      viz.animateProposal = value !== 0;
     });
   f1.add(sim, "tweeningDelay", 0, 200).name("Tweening delay");
   f1.add(sim, "step").name("Step");
   f1.add(sim, "reset").name("Reset");
   f1.open();
 
-  var f2 = gui.addFolder("Visualization Options");
+  const f2 = gui.addFolder("Visualization Options");
   f2.add(viz, "animateProposal").name("Animate proposal").listen();
   f2.add(viz, "showTargetDensity").name("Show target");
   f2.add(viz, "showSamples").name("Show samples");
@@ -294,14 +352,14 @@ window.onload = function () {
   f2.add(viz, "histBins", 20, 200)
     .step(1)
     .name("Histogram bins")
-    .onChange(function (value) {
+    .onChange(() => {
       viz.drawHistograms();
       viz.render();
     });
   f2.open();
 
   gui.removeFolder("Algorithm Options");
-  var f3 = gui.addFolder("Algorithm Options");
+  const f3 = gui.addFolder("Algorithm Options");
   sim.mcmc.attachUI(sim.mcmc, f3);
   f3.add(sim.mcmc, "about").name("About this algorithm");
   f3.open();
@@ -309,8 +367,12 @@ window.onload = function () {
   sim.animate();
 };
 
+/**
+ * Remove a folder from dat.GUI.
+ * @param {string} name - Name of the folder to remove.
+ */
 dat.GUI.prototype.removeFolder = function (name) {
-  var folder = this.__folders[name];
+  const folder = this.__folders[name];
   if (!folder) {
     return;
   }
