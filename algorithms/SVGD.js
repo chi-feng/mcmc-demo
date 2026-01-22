@@ -1,15 +1,25 @@
 "use strict";
 
+/**
+ * Stein Variational Gradient Descent (SVGD)
+ *
+ * A particle-based variational inference method that iteratively transports
+ * a set of particles to approximate the target distribution. Uses a
+ * reproducing kernel to balance between fitting the target and maintaining
+ * particle diversity.
+ *
+ * @see http://www.cs.dartmouth.edu/~dartml/project.html?p=vgd
+ */
 MCMC.registerAlgorithm("SVGD", {
   description: "Stein Variational Gradient Descent",
 
-  about: function () {
+  about: () => {
     window.open("http://www.cs.dartmouth.edu/~dartml/project.html?p=vgd");
   },
 
-  init: function (self) {
+  init: (self) => {
     self.chain = [];
-    self.n = 200; // number of particlese
+    self.n = 200; // number of particles
     self.epsilon = 0.01; // step size
     self.h = 0.15; // bandwidth
     self.use_median = true;
@@ -20,13 +30,14 @@ MCMC.registerAlgorithm("SVGD", {
     self.reset(self);
   },
 
-  reset: function (self) {
-    // initialize chain with samples from standard normal
+  reset: (self) => {
+    // Initialize chain with samples from standard normal
     self.chain = [];
     self.gradx = [];
     self.historical_grad = [];
     self.gradLogDensities = [];
     self.iter = 0;
+
     for (let i = 0; i < self.n; i++) {
       self.chain.push(MultivariateNormal.getSample(self.dim));
       self.gradx.push(Float64Array.zeros(self.dim, 1));
@@ -35,26 +46,24 @@ MCMC.registerAlgorithm("SVGD", {
     }
   },
 
-  attachUI: function (self, folder) {
+  attachUI: (self, folder) => {
     folder.add(self, "use_median").name("Median heuristic").listen();
     folder
       .add(self, "h", 0.05, 2)
       .step(0.05)
       .name("bandwidth")
       .listen()
-      .onChange(function (value) {
+      .onChange(() => {
         self.use_median = false;
       });
     folder.add(self, "use_adagrad").name("Adagrad");
     folder.add(self, "epsilon", 0.001, 0.1).step(0.001).name("stepsize");
-    // folder.add(self, 'alpha', 0.01, 1.0).step(0.01).name('alpha');
-    // folder.add(self, 'fudge_factor', 0.0001, 0.05).step(0.0001).name('fudge_factor');
     folder.add(self, "n", 10, 400).step(1).name("numParticles");
     folder.open();
   },
 
-  step: function (self, visualizer) {
-    // resize samples appropriately
+  step: (self, visualizer) => {
+    // Resize samples appropriately
     if (self.n > self.chain.length) {
       for (let i = 0; i < self.n - self.chain.length; i++) {
         self.chain.push(MultivariateNormal.getSample(self.dim));
@@ -69,9 +78,9 @@ MCMC.registerAlgorithm("SVGD", {
       self.gradLogDensities = self.gradLogDensities.slice(0, self.n);
     }
 
-    var n = self.chain.length;
+    const n = self.chain.length;
 
-    // precompute log densities
+    // Precompute log densities
     for (let i = 0; i < n; i++) {
       self.gradLogDensities[i] = self.gradLogDensity(self.chain[i]);
       for (let k = 0; k < self.dim; k++) {
@@ -79,30 +88,32 @@ MCMC.registerAlgorithm("SVGD", {
       }
     }
 
-    // pairwise distances trick
-    var dist2 = new Float64Array(n * n);
+    // Pairwise distances trick
+    const dist2 = new Float64Array(n * n);
     for (let i = 0; i < n; i++) {
       for (let j = 0; j < i; j++) {
-        var delta = 0;
-        for (let k = 0; k < self.dim; k++) delta += Math.pow(self.chain[i][k] - self.chain[j][k], 2);
+        let delta = 0;
+        for (let k = 0; k < self.dim; k++) {
+          delta += Math.pow(self.chain[i][k] - self.chain[j][k], 2);
+        }
         dist2[i * n + j] = delta;
         dist2[j * n + i] = delta;
       }
     }
 
     if (self.use_median) {
-      var dist2copy = new Float64Array(dist2);
+      const dist2copy = new Float64Array(dist2);
       dist2copy.sort();
-      var median = dist2copy[Math.floor(dist2copy.length / 2)];
+      const median = dist2copy[Math.floor(dist2copy.length / 2)];
       self.h = median / Math.log(n);
     }
 
-    // compute gradient
+    // Compute gradient
     for (let i = 0; i < n; i++) {
       for (let j = 0; j < n; j++) {
-        var rbf = Math.exp(-dist2[i * n + j] / self.h);
+        const rbf = Math.exp(-dist2[i * n + j] / self.h);
         for (let k = 0; k < self.dim; k++) {
-          var grad_rbf = ((self.chain[i][k] - self.chain[j][k]) * 2 * rbf) / self.h;
+          const grad_rbf = ((self.chain[i][k] - self.chain[j][k]) * 2 * rbf) / self.h;
           self.gradx[i][k] += self.gradLogDensities[j][k] * rbf + grad_rbf;
         }
       }
@@ -111,15 +122,19 @@ MCMC.registerAlgorithm("SVGD", {
       }
     }
 
-    // adagrad
+    // Adagrad
     if (self.use_adagrad) {
-      for (let i = 0; i < n; i++)
-        for (let k = 0; k < self.dim; k++)
+      for (let i = 0; i < n; i++) {
+        for (let k = 0; k < self.dim; k++) {
           self.historical_grad[i][k] =
             self.alpha * self.historical_grad[i][k] + (1 - self.alpha) * Math.pow(self.gradx[i][k], 2);
-      for (let i = 0; i < n; i++)
-        for (let k = 0; k < self.dim; k++)
+        }
+      }
+      for (let i = 0; i < n; i++) {
+        for (let k = 0; k < self.dim; k++) {
           self.gradx[i][k] /= self.fudge_factor + Math.sqrt(self.historical_grad[i][k]);
+        }
+      }
     }
 
     for (let i = 0; i < n; i++) {
@@ -135,7 +150,7 @@ MCMC.registerAlgorithm("SVGD", {
       h: self.h,
     });
 
-    // update particles
+    // Update particles
     for (let i = 0; i < n; i++) {
       self.chain[i].increment(self.gradx[i]);
     }

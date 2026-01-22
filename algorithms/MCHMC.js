@@ -1,5 +1,14 @@
 "use strict";
 
+/**
+ * Microcanonical Hamiltonian Monte Carlo (MCHMC)
+ *
+ * A variant of HMC that operates on the microcanonical ensemble, where the
+ * total energy is conserved exactly. Uses a modified momentum update that
+ * preserves the norm of the velocity vector.
+ *
+ * @see https://arxiv.org/pdf/2212.08549.pdf
+ */
 MCMC.registerAlgorithm("MicrocanonicalHamiltonianMC", {
   description: "Microcanonical Hamiltonian Monte Carlo",
 
@@ -23,28 +32,28 @@ MCMC.registerAlgorithm("MicrocanonicalHamiltonianMC", {
   },
 
   step: (self, visualizer) => {
-    
-    var updateMomentum = function (eps, u, grad_logp) {
+    const updateMomentum = (eps, u, grad_logp) => {
       const g_norm = Math.sqrt(grad_logp.norm2());
       const e = grad_logp.scale(-1.0 / g_norm);
       const ue = u.dot(e);
-      const delta = eps * g_norm / (self.dim - 1);
+      const delta = (eps * g_norm) / (self.dim - 1);
       const zeta = Math.exp(-delta);
       const uu = e.scale((1 - zeta) * (1 + zeta + ue * (1 - zeta)) + 2 * zeta);
       return uu.scale(1.0 / Math.sqrt(uu.norm2()));
-    }
-    
+    };
+
     const q0 = self.chain.last();
     const p0 = MultivariateNormal.getSample(self.dim);
-      
+
     // Normalize p0
     const p0Norm = Math.sqrt(p0.norm2());
     p0.scale(1.0 / p0Norm);
 
-    // use leapfrog integration to find proposal
+    // Use leapfrog integration to find proposal
     const q = q0.copy();
-    var p = p0.copy();
+    let p = p0.copy();
     const trajectory = [q.copy()];
+
     for (let i = 0; i < self.leapfrogSteps; i++) {
       p = updateMomentum(self.dt / 2, p, self.gradLogDensity(q));
       q.increment(p.scale(self.dt));
@@ -52,7 +61,7 @@ MCMC.registerAlgorithm("MicrocanonicalHamiltonianMC", {
       trajectory.push(q.copy());
     }
 
-    // add integrated trajectory to visualizer animation queue
+    // Add integrated trajectory to visualizer animation queue
     visualizer.queue.push({
       type: "proposal",
       proposal: q,
@@ -60,9 +69,8 @@ MCMC.registerAlgorithm("MicrocanonicalHamiltonianMC", {
       initialMomentum: p0,
     });
 
-    // accept proposal always in MCHMC
+    // Accept proposal always in MCHMC
     self.chain.push(q.copy());
     visualizer.queue.push({ type: "accept", proposal: q });
-
   },
 });

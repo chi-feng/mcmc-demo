@@ -1,5 +1,14 @@
 "use strict";
 
+/**
+ * Hamiltonian Monte Carlo (HMC) Algorithm
+ *
+ * Uses Hamiltonian dynamics to propose distant states while maintaining high
+ * acceptance rates. Simulates a physical system where the negative log density
+ * acts as potential energy and momentum provides kinetic energy.
+ *
+ * @see https://en.wikipedia.org/wiki/Hybrid_Monte_Carlo
+ */
 MCMC.registerAlgorithm("HamiltonianMC", {
   description: "Hamiltonian Monte Carlo",
 
@@ -26,10 +35,11 @@ MCMC.registerAlgorithm("HamiltonianMC", {
     const q0 = self.chain.last();
     const p0 = MultivariateNormal.getSample(self.dim);
 
-    // use leapfrog integration to find proposal
+    // Use leapfrog integration to find proposal
     const q = q0.copy();
     const p = p0.copy();
     const trajectory = [q.copy()];
+
     for (let i = 0; i < self.leapfrogSteps; i++) {
       p.increment(self.gradLogDensity(q).scale(self.dt / 2));
       q.increment(p.scale(self.dt));
@@ -37,7 +47,7 @@ MCMC.registerAlgorithm("HamiltonianMC", {
       trajectory.push(q.copy());
     }
 
-    // add integrated trajectory to visualizer animation queue
+    // Add integrated trajectory to visualizer animation queue
     visualizer.queue.push({
       type: "proposal",
       proposal: q,
@@ -45,12 +55,12 @@ MCMC.registerAlgorithm("HamiltonianMC", {
       initialMomentum: p0,
     });
 
-    // calculate acceptance ratio
+    // Calculate acceptance ratio
     const H0 = -self.logDensity(q0) + p0.norm2() / 2;
     const H = -self.logDensity(q) + p.norm2() / 2;
     const logAcceptRatio = -H + H0;
 
-    // accept or reject proposal
+    // Accept or reject proposal
     if (Math.random() < Math.exp(logAcceptRatio)) {
       self.chain.push(q.copy());
       visualizer.queue.push({ type: "accept", proposal: q });

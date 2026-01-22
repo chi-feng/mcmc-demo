@@ -1,5 +1,15 @@
 "use strict";
 
+/**
+ * Hamiltonian Monte Carlo with Dual Averaging
+ *
+ * HMC with automatic step size adaptation using the dual averaging scheme
+ * from the NUTS paper. Adapts epsilon during warmup to achieve a target
+ * acceptance rate.
+ *
+ * @see https://en.wikipedia.org/wiki/Hybrid_Monte_Carlo
+ * @see http://arxiv.org/abs/1111.4246
+ */
 MCMC.registerAlgorithm("DualAveragingHMC", {
   description: "Hamiltonian Monte Carlo with Dual Averaging",
 
@@ -11,8 +21,6 @@ MCMC.registerAlgorithm("DualAveragingHMC", {
     self.lambda = 1.6;
     self.delta = 0.65;
     self.M_adapt = 100;
-
-    //viz.animateProposal = false;
 
     self.joint = (theta, r) => {
       return Math.exp(self.logDensity(theta) - r.norm2() / 2);
@@ -30,10 +38,12 @@ MCMC.registerAlgorithm("DualAveragingHMC", {
       const r = MultivariateNormal.getSample(self.dim);
       let result = self.leapFrog(theta, r, epsilon);
       const a = 2 * (self.joint(result.theta, result.r) / self.joint(theta, r) > 0.5 ? 1 : 0) - 1;
+
       while (Math.pow(self.joint(result.theta, result.r) / self.joint(theta, r), a) > Math.pow(2.0, -a)) {
         epsilon = Math.pow(2, a) * epsilon;
         result = self.leapFrog(result.theta, result.r, epsilon);
       }
+
       return Math.max(1e-3, epsilon);
     };
   },
@@ -57,14 +67,14 @@ MCMC.registerAlgorithm("DualAveragingHMC", {
       .add(self, "lambda", 0.1, 2)
       .step(0.1)
       .name("&lambda; = &epsilon;L")
-      .onChange((value) => {
+      .onChange(() => {
         sim.reset();
       });
     folder
       .add(self, "delta", 0.1, 1)
       .step(0.05)
       .name("&delta;")
-      .onChange((value) => {
+      .onChange(() => {
         sim.reset();
       });
     folder.open();
@@ -75,10 +85,12 @@ MCMC.registerAlgorithm("DualAveragingHMC", {
     let theta = self.chain.last().copy();
     let r = r0.copy();
     let Lm = Math.max(1, Math.round(self.lambda / self.epsilon.last()));
+
     if (Lm > 100) {
       console.log("Lm > 100", Lm);
       Lm = 100;
     }
+
     const trajectory = [theta.copy()];
     for (let i = 0; i < Lm; ++i) {
       const result = self.leapFrog(theta, r, self.epsilon.last());
@@ -86,7 +98,9 @@ MCMC.registerAlgorithm("DualAveragingHMC", {
       r = result.r;
       trajectory.push(theta.copy());
     }
+
     const epsilon = ((self.epsilon.last() * 1000) | 0) / 1000;
+
     visualizer.queue.push({
       type: "proposal",
       proposal: theta,
@@ -95,7 +109,9 @@ MCMC.registerAlgorithm("DualAveragingHMC", {
       epsilon: epsilon,
       alpha: self.delta - self.H_bar.last(),
     });
+
     const alpha = Math.min(1, self.joint(theta, r) / self.joint(self.chain.last(), r0));
+
     if (Math.random() < alpha) {
       self.chain.push(theta);
       visualizer.queue.push({ type: "accept", proposal: theta });
@@ -104,7 +120,9 @@ MCMC.registerAlgorithm("DualAveragingHMC", {
       self.chain.push(self.chain.last().copy());
       visualizer.queue.push({ type: "reject", proposal: theta });
     }
+
     const m = self.chain.length;
+
     if (m <= self.M_adapt) {
       self.H_bar.push((1 - 1 / (m + self.t0)) * self.H_bar.last() + (1 / (m + self.t0)) * (self.delta - alpha));
       const log_epsilon = self.mu - (Math.sqrt(m) / self.gamma) * self.H_bar.last();

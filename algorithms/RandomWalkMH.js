@@ -1,5 +1,14 @@
 "use strict";
 
+/**
+ * Random Walk Metropolis-Hastings Algorithm
+ *
+ * A simple MCMC algorithm that proposes new states by adding Gaussian noise
+ * to the current state. Proposals are accepted or rejected based on the
+ * Metropolis-Hastings acceptance criterion.
+ *
+ * @see https://en.wikipedia.org/wiki/Metropolis%E2%80%93Hastings_algorithm
+ */
 MCMC.registerAlgorithm("RandomWalkMH", {
   description: "Random walk Metropolis-Hastings",
 
@@ -24,11 +33,13 @@ MCMC.registerAlgorithm("RandomWalkMH", {
     const proposalDist = new MultivariateNormal(self.chain.last(), eye(self.dim).scale(self.sigma * self.sigma));
     const proposal = proposalDist.getSample();
     const logAcceptRatio = self.logDensity(proposal) - self.logDensity(self.chain.last());
+
     visualizer.queue.push({
       type: "proposal",
       proposal: proposal,
       proposalCov: proposalDist.cov,
     });
+
     if (Math.random() < Math.exp(logAcceptRatio)) {
       self.chain.push(proposal);
       visualizer.queue.push({ type: "accept", proposal: proposal });
