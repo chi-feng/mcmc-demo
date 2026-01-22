@@ -44,7 +44,7 @@ class MultivariateNormal {
     return (
       this.constant -
       this.logDet -
-      0.5 * this.covL.bsolve_inplace(this.covL.fsolve_inplace(diff), { transpose: true }).norm2()
+      0.5 * this.covL.fsolve_inplace(diff).norm2()
     );
   }
   gradLogDensity(x) {
