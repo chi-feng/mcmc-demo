@@ -1,5 +1,14 @@
 "use strict";
 
+/**
+ * Differential Evolution MCMC (Z variant)
+ *
+ * A population-based MCMC method that uses the difference between randomly
+ * selected past states to generate proposals. The "Z" variant samples from
+ * the entire chain history rather than a fixed population.
+ *
+ * @see https://link.springer.com/article/10.1007/s11222-008-9104-9
+ */
 MCMC.registerAlgorithm("DE-MCMC-Z", {
   description: "Differential Evolution Metropolis (Z)",
 
@@ -23,24 +32,27 @@ MCMC.registerAlgorithm("DE-MCMC-Z", {
   },
 
   step: (self, visualizer) => {
-    var N = self.chain.length;
-    var iz1 = Math.floor(Math.random() * N);
-    var iz2 = Math.floor(Math.random() * N);
+    const N = self.chain.length;
+    let iz1 = Math.floor(Math.random() * N);
+    let iz2 = Math.floor(Math.random() * N);
+
     if (N > 1) {
-      while (iz2 == iz1) {
+      while (iz2 === iz1) {
         iz2 = Math.floor(Math.random() * N);
       }
     }
-    var q0 = self.chain.last();
-    var z1 = self.chain[iz1];
-    var z2 = self.chain[iz2];
 
-    var epsilonDist = new MultivariateNormal(zeros(self.dim, 1), eye(self.dim).scale(self.scaling * self.scaling));
-    var epsilon = epsilonDist.getSample();
-    var vec = z2.subtract(z1);
-    var proposal = q0.add(vec.scale(self.lambda)).add(epsilon);
+    const q0 = self.chain.last();
+    const z1 = self.chain[iz1];
+    const z2 = self.chain[iz2];
+
+    const epsilonDist = new MultivariateNormal(zeros(self.dim, 1), eye(self.dim).scale(self.scaling * self.scaling));
+    const epsilon = epsilonDist.getSample();
+    const vec = z2.subtract(z1);
+    const proposal = q0.add(vec.scale(self.lambda)).add(epsilon);
 
     const logAcceptRatio = self.logDensity(proposal) - self.logDensity(self.chain.last());
+
     visualizer.queue.push({
       type: "proposal",
       proposal: proposal,
@@ -49,6 +61,7 @@ MCMC.registerAlgorithm("DE-MCMC-Z", {
         to: z2,
       },
     });
+
     if (Math.random() < Math.exp(logAcceptRatio)) {
       self.chain.push(proposal);
       visualizer.queue.push({ type: "accept", proposal: proposal });

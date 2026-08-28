@@ -1,5 +1,13 @@
 "use strict";
 
+/**
+ * Adaptive Metropolis-Hastings Algorithm
+ *
+ * An extension of Random Walk MH that adapts the proposal covariance based on
+ * the history of the chain. Uses rank-1 covariance updates for efficiency.
+ *
+ * @see http://projecteuclid.org/euclid.bj/1080222083
+ */
 MCMC.registerAlgorithm("AdaptiveMH", {
   description: "Adaptive Metropolis-Hastings",
 
@@ -28,8 +36,9 @@ MCMC.registerAlgorithm("AdaptiveMH", {
 
   step: (self, visualizer) => {
     const lastIndex = self.chain.length - 1;
-    // update proposal covariance using rank-1 covariance update
-    if (self.chain.length % self.adaptStride == 0) {
+
+    // Update proposal covariance using rank-1 covariance update
+    if (self.chain.length % self.adaptStride === 0) {
       for (let i = 0; i < self.adaptStride; ++i) {
         self.chainScatter.increment(Float64Array.outer(self.chain[lastIndex - i], self.chain[lastIndex - i]));
         self.chainSum.increment(self.chain[lastIndex - i]);
@@ -39,14 +48,17 @@ MCMC.registerAlgorithm("AdaptiveMH", {
         self.amDist.setCovariance(covariance.scale((2.38 * 2.38) / self.dim));
       }
     }
+
     const proposalDist = Math.random() < self.adaptProbability ? self.amDist : self.mhDist;
     const proposal = self.chain.last().add(proposalDist.getSample());
     const logAcceptRatio = self.logDensity(proposal) - self.logDensity(self.chain.last());
+
     visualizer.queue.push({
       type: "proposal",
       proposal: proposal,
       proposalCov: proposalDist.cov,
     });
+
     if (Math.random() < Math.exp(logAcceptRatio)) {
       self.chain.push(proposal);
       visualizer.queue.push({ type: "accept", proposal: proposal });
