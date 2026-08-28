@@ -22,15 +22,10 @@ MCMC.registerAlgorithm("H2MC", {
     self.L = Math.PI / 2;
     self.epsilon = 1e-8;
 
-    /**
-     * Log density of a proposal Gaussian, up to the shared -dim/2*log(2*pi)
-     * constant, which cancels in the forward/reverse acceptance ratio.
-     * Uses invCov directly: the covL stored for these Gaussians is a general
-     * square root, not the triangular factor MultivariateNormal.logDensity needs.
-     * @param {MultivariateNormal} dist - Proposal with invCov and logDetInvCov
-     * @param {Matrix} z - Point to evaluate
-     * @returns {number} Log density at z plus dim/2*log(2*pi)
-     */
+    // Proposal log density up to the shared -dim/2*log(2*pi) constant, which
+    // cancels in the forward/reverse ratio. Works from invCov because the covL
+    // stored for these Gaussians is a general square root, not the triangular
+    // factor MultivariateNormal.logDensity assumes.
     self.logProposalDensity = (dist, z) => {
       const diff = z.subtract(dist.mean);
       let quad = 0;

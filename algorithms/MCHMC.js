@@ -32,10 +32,12 @@ MCMC.registerAlgorithm("MicrocanonicalHamiltonianMC", {
   },
 
   step: (self, visualizer) => {
-    // Momentum update from Robnik et al. (arXiv:2212.08549), eq. 16:
-    // the tangential component 2*zeta*u must survive alongside the e term.
-    // The reference negates the energy gradient, which is already the negative
-    // log-density gradient, so e points uphill in log density: e = +grad/|grad|
+    // Momentum update from Robnik et al. (arXiv:2212.08549), following the
+    // authors' unweighted reference implementation (also used by BlackJAX),
+    // which uses the 1/(dim - 1) rate: the tangential component 2*zeta*u must
+    // survive alongside the e term. The reference negates the energy gradient,
+    // which is already the negative log-density gradient, so e points uphill
+    // in log density: e = +grad/|grad|
     const updateMomentum = (eps, u, grad_logp) => {
       const g_norm = Math.sqrt(grad_logp.norm2());
       if (g_norm === 0) return u;
