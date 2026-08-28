@@ -13,28 +13,6 @@ const MCMC = {
     this.algorithms[name] = methods;
   },
 
-  // Compute the mean of a Markov chain
-  computeMean(chain) {
-    const mean = chain[0].copy();
-    for (let i = 1; i < chain.length; ++i) {
-      mean.increment(chain[i]);
-    }
-    return mean.scale(1.0 / chain.length);
-  },
-
-  // Compute the autocorrelation of a Markov chain with a given lag
-  computeAutocorrelation(chain, lag) {
-    const mean = this.computeMean(chain);
-    const autocovariance = zeros(lag, 1);
-    for (let k = 0; k <= lag; ++k) {
-      for (let i = k; i < chain.length; ++i) {
-        autocovariance[k] += chain[i]
-          .subtract(mean)
-          .dot(chain[i - k].subtract(mean));
-      }
-    }
-    return autocovariance.scale(1.0 / autocovariance[0]);
-  },
 };
 
 // Banana distribution

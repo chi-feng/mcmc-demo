@@ -130,7 +130,6 @@ class Visualizer {
   drawHistograms(options) {
     if (!this.simulation.mcmc.initialized) return;
     var chain = this.simulation.mcmc.chain;
-    var has_weights = this.simulation.mcmc.hasOwnProperty("chain_weights");
     // this.histBins = Math.min(125, Math.floor(chain.length / 50) + 10);
     this.xbins = linspace(this.xmin, this.xmax, this.histBins);
     this.ybins = linspace(this.ymin, this.ymax, this.histBins);
@@ -141,10 +140,6 @@ class Visualizer {
       var weight = 1;
       var x = chain[i][0];
       var y = chain[i][1];
-      if (has_weights) {
-        weight = this.simulation.mcmc.chain_weights[i] * chain.length;
-      }
-
       var xind = ((x - this.xmin) / (this.xmax - this.xmin)) * this.histBins;
       if (xind > 0 && xind < this.histBins) this.xhist[xind | 0] += weight;
       var yind = ((y - this.ymin) / (this.ymax - this.ymin)) * this.histBins;
@@ -421,34 +416,6 @@ class Visualizer {
           }
         }
       }
-      if (event.hasOwnProperty("ns_rejected")) {
-        //console.log("ns_rejected: " + event.ns_rejected)
-        if (this.animateProposal) {
-          for (var i = 0; i < event.ns_rejected.length; ++i)
-            this.queue.splice(i, 0, {
-              type: "ns-trajectory-animation-step",
-              ns_rejected: event.ns_rejected,
-              previous: event.previous,
-              offset: i,
-            });
-          this.queue.push({
-            type: "ns-trajectory-animation-end",
-            ns_rejected: event.ns_rejected,
-            previous: event.previous,
-          });
-        } else {
-          for (var i = 0; i < event.ns_rejected.length; ++i) {
-            this.drawArrow(this.overlayCanvas, {
-              from: event.previous,
-              to: event.ns_rejected[i],
-              color: this.rejectColor,
-              lw: 2,
-            });
-            //this.drawSample(this.samplesCanvas, event.ns_rejected[i]);
-          }
-        }
-        drawProposalArrow = false;
-      }
       // draw MALA gradient/proposal offset
       if (event.hasOwnProperty("gradient")) {
         this.drawArrow(this.overlayCanvas, {
@@ -541,21 +508,6 @@ class Visualizer {
       this.tweening = false; // stop skipping delay for calling requestAnimationFrame
     }
 
-    if (event.type == "ns-trajectory-animation-step") {
-      this.tweening = true; // start skiping delay for calling requestAnimationFrame
-      this.drawArrow(this.overlayCanvas, {
-        from: event.previous,
-        to: event.ns_rejected[event.offset],
-        color: this.rejectColor,
-        lw: 2,
-      });
-      //this.drawSample(this.samplesCanvas, event.ns_rejected[event.offset]);
-    }
-
-    if (event.type == "ns-trajectory-animation-end") {
-      this.tweening = false; // stop skipping delay for calling requestAnimationFrame
-    }
-
     if (event.type == "nuts-animation-step") {
       this.tweening = true; // start skiping delay for calling requestAnimationFrame
       var context = this.overlayCanvas.getContext("2d");
@@ -645,63 +597,6 @@ class Visualizer {
       this.drawHistograms();
     }
 
-    if (event.type == "text") {
-      var context = this.overlayCanvas.getContext("2d");
-    }
-
-    if (event.type == "radfriends-region") {
-      var context = this.overlayCanvas.getContext("2d");
-      context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-      for (var i = 0; i < event.x.length; i++) {
-        this.drawCircle(this.overlayCanvas, {
-          fill: "#cfc",
-          color: "#afa",
-          center: event.x[i],
-          radius: event.r,
-          lw: 1,
-        });
-      }
-      for (var i = 0; i < event.x.length; i++) {
-        this.drawCircle(this.overlayCanvas, {
-          fill: "#00f",
-          center: event.x[i],
-          radius: 0.02,
-          lw: 1,
-        });
-      }
-    }
-    if (event.type == "ns-dead-point") {
-      this.drawArrow(this.overlayCanvas, {
-        from: event.deadpoint,
-        to: event.proposal,
-        color: this.acceptColor,
-        lw: 2,
-      });
-      this.drawSample(this.samplesCanvas, event.proposal);
-
-      //var context = this.overlayCanvas.getContext('2d');
-      //context.globalCompositeOperation = 'multiply';
-      for (var i = 0; i < event.rejected.length; ++i) {
-        this.drawCircle(this.overlayCanvas, {
-          fill: this.rejectColor,
-          color: this.rejectColor,
-          center: event.rejected[i],
-          radius: 0.02,
-          lw: 3,
-        });
-        //this.drawArrow(this.overlayCanvas, { from: event.previous, to: event.rejected[i], color: this.rejectColor, lw: 2 });
-        //this.drawSample(this.samplesCanvas, event.ns_rejected[i]);
-      }
-      this.drawCircle(this.overlayCanvas, {
-        fill: this.acceptColor,
-        color: this.acceptColor,
-        center: event.proposal,
-        radius: 0.02,
-        lw: 3,
-      });
-      //context.globalCompositeOperation = 'source-over';
-      this.drawHistograms();
-    }
   }
   drawProposalContour(canvas, last, cov) {
     var context = canvas.getContext("2d");
