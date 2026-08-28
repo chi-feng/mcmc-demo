@@ -123,7 +123,7 @@ Add a custom-target tab for the formula and painting inputs. Painting requires a
 
 ### 7. The course layer
 
-The current gallery shows algorithm motion. A course layer will connect those observations to conclusions. Write short explorable-explanation chapters in the style of distill.pub, with prose, rendered mathematics, and live instances pinned to exact configurations. Candidate chapters cover what Metropolis does, why gradients help, the typical set with direction 2 embedded, diagnostics with direction 1 embedded, sampler failures, and the path from Langevin dynamics to diffusion models with direction 5 embedded.
+The current gallery shows algorithm motion. A course layer will connect those observations to conclusions, and the maintainer chose its shape on 2026-08-29: one flagship scroll-driven essay in the register of ciechanow.ski, at the site root, built from prose, rendered mathematics, and roughly sixty pre-staged figures that each expose a single interaction. The chapters follow one running inference example and cover what Metropolis does, why gradients help, the typical set with direction 2 embedded, diagnostics with direction 1 embedded, sampler failures, the sampler grammar with direction 10 embedded, and the path from Langevin dynamics to diffusion models with direction 5 embedded. The 2017 Hacker News submission of the bare sandbox earned 2 points, which is the evidence that the tool without prose does not carry; the essay is the artifact.
 
 Make the course the site's main entry point. Each figure remains interactive, and each chapter links to the full sandbox. The baseline `?ui=min` mode and URL serialization provide the embedding interface. Most of the work is writing and editing the course.
 
@@ -139,15 +139,27 @@ In a lecture, each student tunes a sampler on a phone while the instructor's scr
 
 Add room creation, a student join flow, and an instructor dashboard. Solo users see no classroom controls unless they enter a room. This direction requires the phone work and a small real-time backend with one Cloudflare Durable Object per room. It is the only direction that needs a server, and every non-classroom feature must continue to work without that server.
 
+### 10. The sampler-grammar workbench
+
+Textbooks and demos, this one included, present samplers as a zoo of named methods. Most of the zoo is combinatorial: a sampler is a proposal mechanism (random-walk jump, gradient drift, Hamiltonian flight, ensemble stretch, slice bracket, continuous-time event, learned transport), a correction that repairs the stationary distribution (none, Metropolis-Hastings, importance weight, exact by construction), and an adaptation scheme (none, scale, covariance, step size and mass matrix, learned map). Add a workbench where the reader composes the three slots directly and watches the result run: switching the correction off on MALA produces ULA and visible bias; snapping covariance adaptation onto the random walk produces AdaptiveMH; giving HMC an automatic trajectory length produces NUTS; wrapping any sampler in a learned transport map produces its preconditioned version. The reader leaves knowing the design space rather than thirteen names. I know of no interactive teaching artifact that presents samplers this way.
+
+The workbench needs the engine's typed event interface plus a composition layer that the canonical roster entries themselves are built from, so the grammar is the implementation rather than a facade. The essay's chapters introduce each slot; the workbench is where the reader proves to themselves that the slots compose.
+
 ## The gp-demo question
 
 The maintainer also maintains [`gp-demo`](https://github.com/chi-feng/gp-demo), an interactive Gaussian-process regression demo built with vanilla JavaScript and hosted on GitHub Pages. A repository merge now would couple two working sites without changing either user's experience. A shared site can connect them later through two topics. [Murray, Adams, and MacKay (2010)](https://proceedings.mlr.press/v9/murray10a.html) developed elliptical slice sampling for models with multivariate Gaussian priors and demonstrated it on Gaussian-process models. A course chapter could also sample a Gaussian process's hyperparameter posterior with HMC or NUTS.
 
 Keep the repositories separate until the platform exists. If the course layer ships, publish one site that links or mounts both demos and let `gp-demo` adopt the engine and renderer conventions. Reconsider a repository merge only if shared maintenance then requires it.
 
-## New algorithms
+## The algorithm collection
 
-Add an algorithm when its two-dimensional visualization teaches something the current thirteen do not. The table orders additions by teaching value and fit with the planned platform; implementation effort affects sequencing only.
+The collection grows in two moves: first consolidate the redundant variants, then add algorithms by family, where each family teaches one idea and each entry earns its place by showing something the others do not.
+
+### One canonical NUTS
+
+- [ ] Replace the three No-U-Turn Sampler entries and `DualAveragingHMC` with two roster entries. `HamiltonianMC` gains an "adapt step size" toggle and absorbs `DualAveragingHMC`. A single `NUTS` entry implements what Stan ships (Betancourt 2017): multinomial state selection along the trajectory, the generalized U-turn criterion, windowed warmup that adapts the step size and a diagonal mass matrix, and explicit divergence flags. The historical variants stay reachable as a staged "variant" control inside that one entry (Algorithm 2's naive tree, Algorithm 3's slice selection, then multinomial), because the essay teaches the progression and the roster should stop charging the reader three slots for one idea.
+
+### Classical coverage
 
 | Algorithm | Reference | What the visualization teaches |
 |---|---|---|
@@ -157,11 +169,35 @@ Add an algorithm when its two-dimensional visualization teaches something the cu
 | Parallel tempering | Swendsen and Wang 1986; Geyer 1991 | It shows a temperature ladder and swaps as a standard way to move between modes that trap local samplers. |
 | Unadjusted Langevin algorithm (ULA), as a toggle on MALA | Roberts and Tweedie 1996 | It removes the Metropolis-Hastings correction so students can see the finite-step stationary distribution shift. |
 | Barker proposal | Livingstone and Zanella 2022 | It shows gradient-based robustness by sweeping the step size and comparing stability with MALA. |
-| Multinomial No-U-Turn Sampler | Betancourt 2017 | It contrasts Stan's current multinomial selection with the 2011 slice-sampling variant in this repository and adds explicit divergence visualization. |
+| Preconditioned Crank-Nicolson (pCN) | Cotter, Roberts, Stuart, and White 2013 | It shows a dimension-robust proposal whose acceptance does not collapse as the dimension slider rises; it is the prerequisite for the function-space entries. |
 | Zig-Zag process and Bouncy Particle Sampler | Bierkens, Fearnhead, and Roberts 2019; Bouchard-Côté, Vollmer, and Doucet 2018 | They show continuous-time, nonreversible, piecewise-deterministic paths in two dimensions. |
 | Sequential Monte Carlo (SMC) sampler | Del Moral, Doucet, and Jasra 2006 | It shows a weighted particle population annealing from a prior to a posterior, and it would restore the ground nested sampling covered before the AGPL removal. |
 
-The target plan has two changes:
+### The transport family
+
+Measure transport is the MIT Uncertainty Quantification group's thread (El Moselhy and Marzouk 2012 frames Bayesian inference as finding a map from a reference distribution to the posterior), and it is the collection's largest gap.
+
+| Algorithm | Reference | What the visualization teaches |
+|---|---|---|
+| Transport-map MCMC | Parno and Marzouk, arXiv:1412.5492 | An adaptive triangular (Knothe-Rosenblatt) map, fit to the chain's own history, straightens the target; the proposal runs in the reference space. Show the map as a deforming grid, with the reference-space chain beside the target-space chain, and watch the banana straighten as the map adapts. |
+| Neural transport preconditioning | Hoffman et al. 2019 (NeuTra) | The same idea with a normalizing flow in place of the triangular map; it bridges to the learned-dynamics family. |
+| Stein variational Newton | Detommaso, Cui, Marzouk, Scheichl, and Spantini 2018 | Second-order preconditioning of the existing SVGD particles; running both side by side shows what curvature information buys on the ill-conditioned target. |
+
+### The surrogate family
+
+- [ ] Add local approximation MCMC (Conrad, Marzouk, Pillai, and Smith 2016). The sampler treats the log density as expensive, builds a local polynomial surrogate, evaluates the true density only where the error indicator demands refinement, and the visualization shows the surrogate patches and refinement points accumulating along the chain's path. This is the only entry that teaches the cost structure of real scientific inference, where one density evaluation is a simulation. Stage it with an artificial per-evaluation delay so the reader feels the budget.
+
+### The learned-dynamics family
+
+- [ ] Add annealed Langevin sampling with a learned score (Song and Ermon 2019), per breakthrough direction 5.
+- [ ] Add flow matching (Lipman et al. 2023), with the training honestly framed: flow matching learns a velocity field from samples, so the demo trains it on the output of a long NUTS run on the same target and then transports fresh reference points along near-straight paths. Show the learned velocity field and contrast its straight probability paths with the diffusion entry's curved ones.
+- [ ] Treat density-only flow training as the stretch tier: annealed flow transport (Arbel, Matthews, and Doucet 2021) and flow annealed importance sampling bootstrap (Midgley et al. 2023) sample from an unnormalized density without preexisting samples, at the cost of machinery the essay may not want to carry.
+
+### The function-space tier
+
+- [ ] After the dimension slider exists, add a dimension-independent likelihood-informed (DILI) MCMC demonstration (Cui, Law, and Marzouk 2016) on top of pCN: the likelihood-informed subspace shows the handful of directions the data actually constrains while pCN handles the rest, which is the geometry behind modern high-dimensional inverse problems.
+
+The target changes stand:
 
 - [ ] Add an ill-conditioned Gaussian target with correlation 0.99 and a heavy-tailed Student-t target. The first shows the effects of preconditioning and gradients; the second shows HMC's behavior in heavy tails.
 - [ ] Fold the draw-your-own-density mode into direction 6 above.
@@ -183,5 +219,5 @@ The target plan has two changes:
 4. Land the baseline user-experience and pedagogy items that do not depend on parallel engine instances for the existing thirteen algorithms.
 5. Build the platform: extract the engine with replay-equivalence tests, add automatic-differentiation targets and the statistical checks, and then land the two-panel comparison mode.
 6. Build directions 1 through 3: multi-chain diagnostics, the dimension slider, and the reparameterization morph. These directions establish the diagnostic and geometric concepts that later directions reuse.
-7. Prototype directions 4 through 8 in order, and require each prototype to demonstrate its pedagogic story and user-facing improvement before full implementation. Add an algorithm from the table when its visualization supports one of these directions or a course chapter.
+7. Prototype directions 4 through 8 in order, and require each prototype to demonstrate its pedagogic story and user-facing improvement before full implementation. Consolidate NUTS first, then add algorithms from the collection family by family when a visualization supports one of these directions or an essay chapter.
 8. Build classroom mode after the phone and multi-chain work, and revisit shared hosting with `gp-demo` after the platform and course layer exist.
