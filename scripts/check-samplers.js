@@ -26,6 +26,13 @@ function mulberry32(seed) {
   };
 }
 Math.random = mulberry32(20260829);
+// Reseeded per check (seed derived from the name) so each result is
+// independent of how many random values earlier checks consumed
+global.reseedFor = function (name) {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (Math.imul(31, h) + name.charCodeAt(i)) | 0;
+  Math.random = mulberry32(20260829 ^ h);
+};
 
 // Browser stubs used by the algorithm files
 global.window = { open() {}, alert() {} };
@@ -127,6 +134,7 @@ function runChecks() {
   let failures = 0;
 
   for (const [name, steps, tol] of CHECKS) {
+    reseedFor(name);
     const { self, algorithm } = makeSelf(name);
     const visualizer = { queue: [] };
     for (let i = 0; i < steps; i++) {
@@ -151,6 +159,7 @@ function runChecks() {
 
   // Regression check: raising the SVGD particle count must add exactly the deficit
   {
+    reseedFor("SVGD-resize");
     const { self, algorithm } = makeSelf("SVGD");
     const visualizer = { queue: [] };
     algorithm.step(self, visualizer);
