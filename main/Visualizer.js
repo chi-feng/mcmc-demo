@@ -338,7 +338,7 @@ class Visualizer {
           5 * window.devicePixelRatio + 1.2 * this.fontSizePx
         );
         context.fillText(
-          "m / M_adapt = " + this.simulation.mcmc.chain.length + " / " + this.simulation.mcmc.M_adapt,
+          "m / M_adapt = " + (this.simulation.mcmc.chain.length - 1) + " / " + this.simulation.mcmc.M_adapt,
           5 * window.devicePixelRatio,
           5 * window.devicePixelRatio + 2 * 1.2 * this.fontSizePx
         );

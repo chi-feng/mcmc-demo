@@ -65,7 +65,9 @@ MCMC.registerAlgorithm("SVGD", {
   step: (self, visualizer) => {
     // Resize samples appropriately
     if (self.n > self.chain.length) {
-      for (let i = 0; i < self.n - self.chain.length; i++) {
+      // Capture the deficit first: each push grows chain.length and would shrink the bound
+      const missing = self.n - self.chain.length;
+      for (let i = 0; i < missing; i++) {
         self.chain.push(MultivariateNormal.getSample(self.dim));
         self.gradx.push(Float64Array.zeros(self.dim, 1));
         self.historical_grad.push(Float64Array.zeros(self.dim, 1));

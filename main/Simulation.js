@@ -55,6 +55,9 @@ class Simulation {
     // Bind to the target so methods can read its fields (the donut reads this.radius)
     this.mcmc.logDensity = target.logDensity.bind(target);
     this.mcmc.gradLogDensity = target.gradLogDensity.bind(target);
+    // Expose the target extents so algorithms (Gibbs) can bound their grids
+    this.mcmc.xmin = target.xmin;
+    this.mcmc.xmax = target.xmax;
 
     // Update visualizer extents
     this.visualizer.xmin = target.xmin;

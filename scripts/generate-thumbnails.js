@@ -9,6 +9,7 @@
  * sampler with animation disabled, hides the UI, and screenshots the canvas.
  */
 const path = require("path");
+const { pathToFileURL } = require("url");
 const { chromium } = require("playwright");
 
 // Steps are chosen per algorithm so each thumbnail shows a filled-in chain.
@@ -40,8 +41,9 @@ const ALGORITHMS = [
   page.on("dialog", (dialog) => dialog.dismiss());
 
   for (const [algorithm, steps] of ALGORITHMS) {
-    const url = `file://${root}/app.html?algorithm=${algorithm}&target=banana&seed=thumbnail`;
-    await page.goto(url);
+    const url = new URL(pathToFileURL(path.join(root, "app.html")));
+    url.search = new URLSearchParams({ algorithm, target: "banana", seed: "thumbnail" }).toString();
+    await page.goto(url.href);
     // Simulation.js declares sim with top-level let, so it is not a window property.
     await page.waitForFunction(() => typeof sim !== "undefined" && sim.mcmc.initialized);
     await page.evaluate((n) => {

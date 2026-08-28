@@ -41,7 +41,7 @@ MCMC.registerAlgorithm("DualAveragingHMC", {
 
       while (Math.pow(self.joint(result.theta, result.r) / self.joint(theta, r), a) > Math.pow(2.0, -a)) {
         epsilon = Math.pow(2, a) * epsilon;
-        result = self.leapFrog(result.theta, result.r, epsilon);
+        result = self.leapFrog(theta, r, epsilon);
       }
 
       return Math.max(1e-3, epsilon);
@@ -53,9 +53,9 @@ MCMC.registerAlgorithm("DualAveragingHMC", {
     self.epsilon = [self.findReasonableEpsilon(self.chain.last())];
     self.mu = Math.log(10 * self.epsilon[0]);
     self.epsilon_bar = [1.0];
-    self.H_bar = [1.0];
+    self.H_bar = [0.0];
 
-    self.gamma = 0.2;
+    self.gamma = 0.05;
     self.t0 = 10;
     self.kappa = 0.75;
 
@@ -121,7 +121,7 @@ MCMC.registerAlgorithm("DualAveragingHMC", {
       visualizer.queue.push({ type: "reject", proposal: theta });
     }
 
-    const m = self.chain.length;
+    const m = self.chain.length - 1;
 
     if (m <= self.M_adapt) {
       self.H_bar.push((1 - 1 / (m + self.t0)) * self.H_bar.last() + (1 / (m + self.t0)) * (self.delta - alpha));
