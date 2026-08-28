@@ -203,7 +203,7 @@ class Visualizer {
     var ymarg = this.simulation.mcmc.marginals[1];
     context.beginPath();
     context.moveTo(0, 0);
-    for (var i = 1; i < xgrid.length; ++i) {
+    for (var i = 1; i < ygrid.length; ++i) {
       var y = this.origin[1] - this.scale * ygrid[i];
       context.lineTo(ymarg[i] * this.yHistCanvas.width * 0.97, y);
     }
@@ -403,6 +403,8 @@ class Visualizer {
           });
         } else {
           for (var i = 0; i < event.nuts_trajectory.length; ++i) {
+            // NaiveNUTS pushes {type:"left"/"right"} direction markers that carry no segment
+            if (!event.nuts_trajectory[i].from) continue;
             var color = event.nuts_trajectory[i].type == "accept" ? this.nutsColor : "#f00";
             this.drawPath(this.overlayCanvas, {
               path: [event.nuts_trajectory[i].from, event.nuts_trajectory[i].to],
