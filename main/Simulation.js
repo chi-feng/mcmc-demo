@@ -52,8 +52,9 @@ class Simulation {
     this.hasTarget = true;
     this.target = targetName;
     const target = MCMC.targets[targetName];
-    this.mcmc.logDensity = target.logDensity;
-    this.mcmc.gradLogDensity = target.gradLogDensity;
+    // Bind to the target so methods can read its fields (the donut reads this.radius)
+    this.mcmc.logDensity = target.logDensity.bind(target);
+    this.mcmc.gradLogDensity = target.gradLogDensity.bind(target);
 
     // Update visualizer extents
     this.visualizer.xmin = target.xmin;
