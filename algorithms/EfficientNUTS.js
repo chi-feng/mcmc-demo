@@ -37,6 +37,9 @@ MCMC.registerAlgorithm("EfficientNUTS", {
     // BuildTree from Algorithm 3: Efficient No-U-Turn Sampler
     const buildTree = (q, p, u, v, j) => {
       q = q.copy();
+      // Copy p too: the leapfrog below mutates it, and without a copy the second
+      // recursive call overwrites the momentum kept as the first subtree's endpoint
+      p = p.copy();
       const q0 = q.copy();
 
       if (j === 0) {

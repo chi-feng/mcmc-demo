@@ -32,26 +32,29 @@ MCMC.registerAlgorithm("MicrocanonicalHamiltonianMC", {
   },
 
   step: (self, visualizer) => {
+    // Momentum update from Robnik et al. (arXiv:2212.08549), eq. 16:
+    // the tangential component 2*zeta*u must survive alongside the e term.
+    // The reference negates the energy gradient, which is already the negative
+    // log-density gradient, so e points uphill in log density: e = +grad/|grad|
     const updateMomentum = (eps, u, grad_logp) => {
       const g_norm = Math.sqrt(grad_logp.norm2());
-      const e = grad_logp.scale(-1.0 / g_norm);
+      if (g_norm === 0) return u;
+      const e = grad_logp.scale(1.0 / g_norm);
       const ue = u.dot(e);
       const delta = (eps * g_norm) / (self.dim - 1);
       const zeta = Math.exp(-delta);
-      const uu = e.scale((1 - zeta) * (1 + zeta + ue * (1 - zeta)) + 2 * zeta);
+      const uu = u.scale(2 * zeta).add(e.scale((1 - zeta) * (1 + zeta + ue * (1 - zeta))));
       return uu.scale(1.0 / Math.sqrt(uu.norm2()));
     };
 
     const q0 = self.chain.last();
+    // MCHMC uses a unit velocity; scale returns a copy, so assign the result
     const p0 = MultivariateNormal.getSample(self.dim);
-
-    // Normalize p0
-    const p0Norm = Math.sqrt(p0.norm2());
-    p0.scale(1.0 / p0Norm);
+    const u0 = p0.scale(1.0 / Math.sqrt(p0.norm2()));
 
     // Use leapfrog integration to find proposal
     const q = q0.copy();
-    let p = p0.copy();
+    let p = u0.copy();
     const trajectory = [q.copy()];
 
     for (let i = 0; i < self.leapfrogSteps; i++) {
@@ -66,7 +69,7 @@ MCMC.registerAlgorithm("MicrocanonicalHamiltonianMC", {
       type: "proposal",
       proposal: q,
       trajectory: trajectory,
-      initialMomentum: p0,
+      initialMomentum: u0,
     });
 
     // Accept proposal always in MCHMC

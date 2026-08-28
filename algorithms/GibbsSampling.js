@@ -30,8 +30,13 @@ MCMC.registerAlgorithm("GibbsSampling", {
     const sampleFullConditional = (logDensity, point, index) => {
       point = point.copy();
 
-      // Add some noise to avoid grid pattern in samples
-      const Xs = linspace(-6 - (Math.random() * 12) / 256, 6 + (Math.random() * 12) / 256, 256);
+      // Add some noise to avoid grid pattern in samples; use the target's extents
+      const width = self.xmax - self.xmin;
+      const Xs = linspace(
+        self.xmin - (Math.random() * width) / 256,
+        self.xmax + (Math.random() * width) / 256,
+        256
+      );
       const densities = [];
       let marginal = 0;
 

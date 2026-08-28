@@ -23,6 +23,29 @@ MCMC.registerAlgorithm("H2MC", {
     self.epsilon = 1e-8;
 
     /**
+     * Log density of a proposal Gaussian, up to the shared -dim/2*log(2*pi)
+     * constant, which cancels in the forward/reverse acceptance ratio.
+     * Uses invCov directly: the covL stored for these Gaussians is a general
+     * square root, not the triangular factor MultivariateNormal.logDensity needs.
+     * @param {MultivariateNormal} dist - Proposal with invCov and logDetInvCov
+     * @param {Matrix} z - Point to evaluate
+     * @returns {number} Log density at z plus dim/2*log(2*pi)
+     */
+    self.logProposalDensity = (dist, z) => {
+      const diff = z.subtract(dist.mean);
+      let quad = 0;
+      if (dist.invCov.cols === 1) {
+        // Diagonal case stores the inverse variances as a vector
+        for (let i = 0; i < diff.length; i++) {
+          quad += diff[i] * diff[i] * dist.invCov[i];
+        }
+      } else {
+        quad = diff.dot(dist.invCov.multiply(diff));
+      }
+      return 0.5 * dist.logDetInvCov - 0.5 * quad;
+    };
+
+    /**
      * Compute Gaussian proposal from Hessian information
      * @param {Matrix} x - Current position
      * @param {Matrix} grad - Gradient at x
@@ -42,13 +65,15 @@ MCMC.registerAlgorithm("H2MC", {
       const invSigmaSq = sigmaSq.cwiseInverse();
 
       if (hess.norm() < 0.5 / (sigmaMax * sigmaMax)) {
-        return new MultivariateNormal({
+        const dist = new MultivariateNormal({
           offset: zeros(dim),
           mean: x,
           covL: sigma.asDiagonal(),
           invCov: invSigmaSq,
           logDet: invSigmaSq.map(Math.log).sum(),
         });
+        dist.logDetInvCov = invSigmaSq.map(Math.log).sum();
+        return dist;
       }
 
       const eigenSolver = hess.jacobiRotation({
@@ -93,7 +118,9 @@ MCMC.registerAlgorithm("H2MC", {
       };
 
       gaussianParams.mean = x.add(gaussianParams.offset);
-      return new MultivariateNormal(gaussianParams);
+      const dist = new MultivariateNormal(gaussianParams);
+      dist.logDetInvCov = postInvCovEigenvalues.map(Math.log).sum();
+      return dist;
     };
   },
 
@@ -112,14 +139,25 @@ MCMC.registerAlgorithm("H2MC", {
     const proposalDist = self.computeGaussian(x, self.gradLogDensity(x), self.hessLogDensity(x));
     const y = proposalDist.getSample();
 
+    // The proposal Gaussian depends on the current state, so it is asymmetric
+    // and the acceptance ratio needs the reverse proposal density q(x|y)
+    const reverseDist = self.computeGaussian(y, self.gradLogDensity(y), self.hessLogDensity(y));
+    const logAcceptRatio =
+      self.logDensity(y) +
+      self.logProposalDensity(reverseDist, x) -
+      self.logDensity(x) -
+      self.logProposalDensity(proposalDist, y);
+
     visualizer.queue.push({
       type: "proposal",
       proposal: y,
       proposalMean: proposalDist.mean,
       proposalCov: proposalDist.cov,
+      revProposalMean: reverseDist.mean,
+      revProposalCov: reverseDist.cov,
     });
 
-    if (Math.random() < Math.exp(self.logDensity(y) - self.logDensity(x))) {
+    if (Math.random() < Math.exp(logAcceptRatio)) {
       self.chain.push(y.copy());
       visualizer.queue.push({ type: "accept", proposal: y });
     } else {

@@ -41,7 +41,7 @@ MCMC.registerAlgorithm("DualAveragingNUTS", {
 
       while (Math.pow(self.joint(result.theta, result.r) / self.joint(theta, r), a) > Math.pow(2.0, -a)) {
         epsilon = Math.pow(2, a) * epsilon;
-        result = self.leapFrog(result.theta, result.r, epsilon);
+        result = self.leapFrog(theta, r, epsilon);
       }
 
       return Math.max(0.1, epsilon);
@@ -53,9 +53,9 @@ MCMC.registerAlgorithm("DualAveragingNUTS", {
     self.epsilon = [self.findReasonableEpsilon(self.chain.last())];
     self.mu = Math.log(10 * self.epsilon[0]);
     self.epsilon_bar = [1.0];
-    self.H_bar = [1.0];
+    self.H_bar = [0.0];
 
-    self.gamma = 0.2;
+    self.gamma = 0.05;
     self.t0 = 10;
     self.kappa = 0.75;
   },
@@ -78,6 +78,9 @@ MCMC.registerAlgorithm("DualAveragingNUTS", {
     // BuildTree from Algorithm 3: Efficient No-U-Turn Sampler
     const buildTree = (q, p, u, v, j, dt, q0, p0) => {
       q = q.copy();
+      // Copy p too: the leapfrog below mutates it, and without a copy the second
+      // recursive call overwrites the momentum kept as the first subtree's endpoint
+      p = p.copy();
       const q0_local = q.copy();
 
       if (j === 0) {
@@ -220,7 +223,7 @@ MCMC.registerAlgorithm("DualAveragingNUTS", {
 
     self.chain.push(q.copy());
 
-    const m = self.chain.length;
+    const m = self.chain.length - 1;
 
     if (m <= self.M_adapt) {
       self.H_bar.push(
