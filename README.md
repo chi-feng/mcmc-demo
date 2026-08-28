@@ -19,7 +19,6 @@ Click on an algorithm below to view an interactive demo where you can change alg
 
 ### Non-Markovian iterative sampling methods
 *   [Stein Variational Gradient Descent (SVGD)](https://chi-feng.github.io/mcmc-demo/app.html?algorithm=SVGD&target=banana&delay=0) [[5]](#ref-5)
-*   [Nested Sampling with RadFriends (RadFriends-NS)](https://chi-feng.github.io/mcmc-demo/app.html?algorithm=RadFriends-NS&target=banana) [[6]](#ref-6)
 
 ### References
 
@@ -32,8 +31,6 @@ Click on an algorithm below to view an interactive demo where you can change alg
 [4] Li, Tzu-Mao, et al. [Anisotropic Gaussian mutations for metropolis light transport through Hessian-Hamiltonian dynamics](https://people.csail.mit.edu/tzumao/h2mc/) ACM Transactions on Graphics 34.6 (2015): 209.
 
 [5] Q. Liu, et al. [Stein Variational Gradient Descent: A General Purpose Bayesian Inference Algorithm](http://www.cs.dartmouth.edu/~dartml/project.html?p=vgd) Advances in Neural Information Processing Systems. 2016.
-
-[6] J. Buchner [A statistical test for Nested Sampling algorithms](https://arxiv.org/abs/1407.5459) Statistics and Computing. 2014.
 
 [7] Cajo J. F. ter Braak & Jasper A. Vrugt [Differential Evolution Markov Chain with snooker updater and fewer chains](https://link.springer.com/article/10.1007/s11222-008-9104-9) Statistics and Computing. 2008.
 

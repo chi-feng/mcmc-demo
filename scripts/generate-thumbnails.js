@@ -25,7 +25,6 @@ const ALGORITHMS = [
   ["GibbsSampling", 250],
   ["DE-MCMC-Z", 400],
   ["SVGD", 150],
-  ["RadFriends-NS", 150],
   ["MicrocanonicalHamiltonianMC", 150],
 ];
 
@@ -36,8 +35,6 @@ const ALGORITHMS = [
     viewport: { width: 240, height: 240 },
     deviceScaleFactor: 1,
   });
-  // RadFriends-NS raises an alert when the integrator converges.
-  page.on("dialog", (dialog) => dialog.dismiss());
 
   for (const [algorithm, steps] of ALGORITHMS) {
     const url = `file://${root}/app.html?algorithm=${algorithm}&target=banana&seed=thumbnail`;
