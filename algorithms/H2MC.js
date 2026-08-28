@@ -58,14 +58,12 @@ MCMC.registerAlgorithm("H2MC", {
       const hEigenvector = eigenSolver.eigenvectors;
       const hEigenvalues = eigenSolver.eigenvalues;
       const eigenBuff = zeros(dim, 1);
-      const offsetBuff = zeros(dim, 1);
-      const postInvCovEigenvalues = zeros(dim, 1);
 
       for (let i = 0; i < dim; i++) {
         eigenBuff[i] = Math.abs(hEigenvalues[i]) > self.epsilon ? 1.0 / Math.abs(hEigenvalues[i]) : 0;
       }
 
-      offsetBuff.copyFrom(eigenBuff.asDiagonal().multiply(hEigenvector.transpose().multiply(grad)));
+      const offsetBuff = eigenBuff.asDiagonal().multiply(hEigenvector.transpose().multiply(grad));
 
       for (let i = 0; i < dim; i++) {
         let scale = 1.0;
@@ -85,7 +83,7 @@ MCMC.registerAlgorithm("H2MC", {
         offsetBuff[i] = offset;
       }
 
-      postInvCovEigenvalues.copyFrom(eigenBuff.add(invSigmaSq));
+      const postInvCovEigenvalues = eigenBuff.add(invSigmaSq);
 
       const gaussianParams = {
         invCov: hEigenvector.multiply(postInvCovEigenvalues.asDiagonal().multiply(hEigenvector.transpose())),
