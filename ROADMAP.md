@@ -79,6 +79,7 @@ The current architecture couples sampling to rendering. All fourteen algorithm `
 - [ ] Split rendering from the engine. Canvas 2D remains the default renderer, and the ensemble view adds a graphics processing unit (GPU) renderer and compute path. WebGPU, the browser API for GPU graphics and computation, is available by default on supported hardware in [Chrome](https://developer.chrome.com/blog/webgpu-release), [Firefox on Windows and Apple silicon macOS](https://developer.mozilla.org/en-US/docs/Mozilla/Firefox/Experimental_features#webgpu_api), and [Safari 26](https://webkit.org/blog/17333/webkit-features-in-safari-26-0/#webgpu), but coverage still depends on the operating system and hardware. Detect `navigator.gpu` at runtime. On unsupported systems, retain the one-chain and four-chain Canvas 2D views and offer a reduced CPU ensemble only if it meets the interaction budget; do not attempt a WebGPU polyfill.
 - [ ] Replace the finite-difference Hessian in `main/Simulation.js` with a small forward-mode automatic-differentiation expression type. Formula-defined targets then obtain gradients and Hessians by evaluating the expression graph, subject to floating-point error, while painted targets continue to use numerical derivatives.
 - [ ] Add nightly statistical checks for every compatible sampler-target pair. Use seeded runs, Kolmogorov-Smirnov tests on the marginals, and a maximum mean discrepancy test for the joint distribution against reference samples from high-resolution numerical integration (quadrature). Validate the method and thresholds on targets with analytic reference distributions, and report these tests as regression detectors rather than proofs of correctness. Calibrate cases to expose the MCHMC and H2MC distribution errors; the per-target browser checks in the earlier CI item cover the donut and `copyFrom` crashes.
+- [ ] Count target evaluations as engine data. Record density-only, gradient, joint density-and-gradient, and Hessian calls without double-counting fused calls. For batched execution, retain both the number of logical evaluations and the number of physical batches. Direction 11 and the tuning challenges use these counters.
 - [ ] Retain static deployment and local loading. GitHub Pages serves plain static files, and a built, committed `app.html` must continue to work from `file://` with a main-thread fallback. The build emits classic scripts for deployment even if the TypeScript source uses modules. A documented compatibility adapter must also preserve the one-file plain-JavaScript algorithm contribution path by mapping a plug-in to the engine's typed event interface.
 
 ## Breakthrough directions
@@ -123,9 +124,9 @@ Add a custom-target tab for the formula and painting inputs. Painting requires a
 
 ### 7. The course layer
 
-The current gallery shows algorithm motion. A course layer will connect those observations to conclusions. Write short explorable-explanation chapters in the style of distill.pub, with prose, rendered mathematics, and live instances pinned to exact configurations. Candidate chapters cover what Metropolis does, why gradients help, the typical set with direction 2 embedded, diagnostics with direction 1 embedded, sampler failures, and the path from Langevin dynamics to diffusion models with direction 5 embedded.
+The current gallery shows algorithm motion. On 2026-08-29, the maintainer chose one flagship, scroll-driven essay for the course layer. It will use the presentation style of ciechanow.ski and will sit at the site root. The essay will combine prose, rendered mathematics, and roughly sixty pre-staged figures. Each figure will expose one interaction. One running inference example will connect sections on what Metropolis does, why gradients help, the typical set with direction 2 embedded, diagnostics with direction 1 embedded, sampler failures, the sampler grammar with direction 10 embedded, and the path from Langevin dynamics to diffusion models with direction 5 embedded. A 2017 Hacker News submission of the sandbox received 2 points. That result does not identify why the submission received little attention, but it motivates making the essay the main entry point instead of assuming that the sandbox can explain itself.
 
-Make the course the site's main entry point. Each figure remains interactive, and each chapter links to the full sandbox. The baseline `?ui=min` mode and URL serialization provide the embedding interface. Most of the work is writing and editing the course.
+Make the essay the site's main entry point. Each figure remains interactive, and each section links to the full sandbox. The baseline `?ui=min` mode and URL serialization provide the embedding interface. Most of the work is writing and editing the essay.
 
 ### 8. Tuning challenges
 
@@ -139,29 +140,79 @@ In a lecture, each student tunes a sampler on a phone while the instructor's scr
 
 Add room creation, a student join flow, and an instructor dashboard. Solo users see no classroom controls unless they enter a room. This direction requires the phone work and a small real-time backend with one Cloudflare Durable Object per room. It is the only direction that needs a server, and every non-classroom feature must continue to work without that server.
 
+### 10. The sampler-grammar workbench
+
+Textbooks and demos, including this gallery, often present samplers as unrelated named methods. Add a workbench that compares proposal-based Markov chain samplers through three questions: How does the kernel generate a candidate or trajectory? How does it preserve the target distribution? Which parameters does warmup or online adaptation tune? The workbench represents the answers as three slots: transition, target preservation, and adaptation. These slots compose random-walk, Langevin, Hamiltonian, and transport-preconditioned kernels. They are not a universal grammar. Slice samplers, continuous-time piecewise-deterministic processes, importance-weighted particle methods, and SVGD use other validity mechanisms. In particular, an importance weight does not correct a Markov transition, so the interface must present importance weighting as a separate particle-method mechanism.
+
+Use four worked compositions. Adding a Metropolis-Hastings correction to the ULA proposal produces MALA; turning off that correction recovers ULA and exposes its finite-step bias. Adding empirical-covariance adaptation to `RandomWalkMH` produces `AdaptiveMH`, subject to the conditions of the selected adaptive MCMC scheme. Replacing HMC's fixed integration time with balanced tree expansion, valid U-turn termination checks, and trajectory-wide state selection produces NUTS; automatic trajectory length alone is not sufficient. A fixed differentiable bijection can reparameterize a target so that a compatible sampler runs in reference coordinates, provided that the transformed density includes the Jacobian determinant. A map learned during sampling also needs an adaptation schedule that preserves ergodicity.
+
+Before the essay scales to its full length, run a transfer test: prototype one chapter, then ask readers to compose or reject a sampler they have not seen and to explain what preserves the target distribution. Expand the essay only if readers carry the grammar beyond the worked examples.
+
+Implement the engine's typed event interface and a composition layer, then build the canonical roster entries from that layer. The implementation must prevent invalid combinations and state the invariance conditions for each valid combination. The essay introduces each slot, and the workbench lets the reader test how the valid slots compose.
+
+### 11. The cost-normalized benchmark
+
+Per-iteration comparisons can favor trajectory methods because one NUTS iteration can use dozens of gradient evaluations while one random-walk Metropolis iteration usually uses one density evaluation. [Hoffman and Gelman (2014)](https://jmlr.org/papers/v15/hoffman14a.html) compare HMC variants by effective sample size (ESS) per gradient evaluation when gradient computation dominates their cost. For compatible Markov-chain samplers, report ESS for named estimands, autocorrelation curves, moment error against ground truth, wall time, and the engine's separate target-operation counts. Compare ESS per gradient evaluation within gradient-based methods and ESS per density evaluation within density-only methods. Do not rank those rates as if a density call and a gradient call had equal cost.
+
+Add serial and batched cost views. The serial view shows separate target-operation counts and wall time. The batched view shows logical evaluations, physical batches, and wall time so that accelerator throughput is visible. [Hoffman, Radul, and Sountsov (2021)](https://proceedings.mlr.press/v130/hoffman21a.html) introduce ChEES-HMC and explain why fixed-length HMC can suit accelerators: NUTS's variable-length, control-flow-heavy tree building is difficult to run efficiently across many GPU chains. Report uncertainty across seeded replicates because ESS estimates are noisy at small budgets.
+
+The comparison view ships with the diagnostics work in direction 1. The reader picks a target and a budget, then the compatible samplers run. A ranked strip reports the selected cost measure, and an autocorrelation drawer shows the underlying lag behavior.
+
 ## The gp-demo question
 
 The maintainer also maintains [`gp-demo`](https://github.com/chi-feng/gp-demo), an interactive Gaussian-process regression demo built with vanilla JavaScript and hosted on GitHub Pages. A repository merge now would couple two working sites without changing either user's experience. A shared site can connect them later through two topics. [Murray, Adams, and MacKay (2010)](https://proceedings.mlr.press/v9/murray10a.html) developed elliptical slice sampling for models with multivariate Gaussian priors and demonstrated it on Gaussian-process models. A course chapter could also sample a Gaussian process's hyperparameter posterior with HMC or NUTS.
 
 Keep the repositories separate until the platform exists. If the course layer ships, publish one site that links or mounts both demos and let `gp-demo` adopt the engine and renderer conventions. Reconsider a repository merge only if shared maintenance then requires it.
 
-## New algorithms
+## The algorithm collection
 
-Add an algorithm when its two-dimensional visualization teaches something the current thirteen do not. The table orders additions by teaching value and fit with the planned platform; implementation effort affects sequencing only.
+First consolidate the redundant variants. Then add algorithms by family. Each family must teach one distinct idea, and each entry must show behavior that the existing entries do not.
+
+### One canonical NUTS
+
+- [ ] Replace the three No-U-Turn Sampler entries and `DualAveragingHMC` with two roster entries. Give `HamiltonianMC` an "adapt step size" toggle and fold `DualAveragingHMC` into it. Make one `NUTS` entry follow Stan's current multinomial NUTS implementation with its default diagonal Euclidean metric. It uses multinomial state selection across the trajectory, the generalized U-turn criterion, three-stage windowed warmup that adapts the step size and diagonal metric, and explicit divergence flags. Stan also supports unit and dense Euclidean metrics; this entry implements the default diagonal configuration. [Betancourt (2017)](https://arxiv.org/abs/1701.02434) describes the generalized criterion and Stan's multinomial update, [Hoffman and Gelman (2014)](https://jmlr.org/papers/v15/hoffman14a.html) is the source for the original slice-based NUTS algorithms, and the [Stan Reference Manual](https://mc-stan.org/docs/reference-manual/mcmc.html) specifies the current warmup schedule and metric choices. Keep the historical variants reachable through a staged "variant" control inside the `NUTS` entry: Algorithm 2's explicit candidate set, Algorithm 3's memory-efficient recursive selection, and then Stan's multinomial selection. The first two variants both use a slice variable. The essay teaches this progression without presenting three NUTS variants as separate algorithms.
+
+### Classical coverage
 
 | Algorithm | Reference | What the visualization teaches |
 |---|---|---|
 | Slice sampling | Neal 2003 | It shows level sets, stepping out, and shrinkage. |
 | Elliptical slice sampling | Murray, Adams, and MacKay 2010 | It shows a tuning-free update and the shrinking ellipse of candidate points. |
 | Affine-invariant ensemble | Goodman and Weare 2010; Foreman-Mackey et al. 2013 for `emcee` | It shows a walker cloud whose stretch moves adapt to the target's shape without gradients. |
-| Parallel tempering | Swendsen and Wang 1986; Geyer 1991 | It shows a temperature ladder and swaps as a standard way to move between modes that trap local samplers. |
+| Parallel tempering | Swendsen and Wang 1986; Geyer 1991; non-reversible analysis and tuning: [Syed, Bouchard-Côté, Deligiannidis, and Doucet 2022](https://doi.org/10.1111/rssb.12464) | It shows a temperature ladder and swaps as a standard way to move between modes that trap local samplers. The deterministic even-odd schedule shows index-process round trips between the reference and target temperatures; Syed et al. use the round-trip rate to compare and tune tempering schemes. |
 | Unadjusted Langevin algorithm (ULA), as a toggle on MALA | Roberts and Tweedie 1996 | It removes the Metropolis-Hastings correction so students can see the finite-step stationary distribution shift. |
 | Barker proposal | Livingstone and Zanella 2022 | It shows gradient-based robustness by sweeping the step size and comparing stability with MALA. |
-| Multinomial No-U-Turn Sampler | Betancourt 2017 | It contrasts Stan's current multinomial selection with the 2011 slice-sampling variant in this repository and adds explicit divergence visualization. |
+| Preconditioned Crank-Nicolson (pCN) | Cotter, Roberts, Stuart, and White 2013 | It shows mesh-refinement robustness for a posterior defined relative to a Gaussian reference measure: acceptance and mixing do not degrade merely because the same function is discretized on a finer grid. It provides the baseline for the function-space entries. |
 | Zig-Zag process and Bouncy Particle Sampler | Bierkens, Fearnhead, and Roberts 2019; Bouchard-Côté, Vollmer, and Doucet 2018 | They show continuous-time, nonreversible, piecewise-deterministic paths in two dimensions. |
 | Sequential Monte Carlo (SMC) sampler | Del Moral, Doucet, and Jasra 2006 | It shows a weighted particle population annealing from a prior to a posterior, and it would restore the ground nested sampling covered before the AGPL removal. |
 
-The target plan has two changes:
+### The transport family
+
+The MIT Uncertainty Quantification group developed several inference methods based on measure transport. [El Moselhy and Marzouk (2012)](https://arxiv.org/abs/1109.1516) frame Bayesian inference as constructing a deterministic map that pushes the prior measure to the posterior measure. The collection does not yet include a transport method.
+
+| Algorithm | Reference | What the visualization teaches |
+|---|---|---|
+| Transport-map MCMC | [Parno and Marzouk, arXiv:1412.5492](https://arxiv.org/abs/1412.5492) | The method fits a lower-triangular approximation of the Knothe-Rosenblatt rearrangement from previous MCMC states and applies a standard proposal in the resulting reference coordinates. Show the map as a deforming grid, with the reference-coordinate chain beside the target-coordinate chain. The grid shows how the map sends the banana-shaped target toward the reference distribution as adaptation proceeds. |
+| Neural transport preconditioning | [Hoffman et al. 2019](https://arxiv.org/abs/1903.03704) (NeuTra) | NeuTra trains an inverse autoregressive flow with a variational objective and then runs HMC in the warped latent space. It connects triangular transport maps to learned normalizing flows. |
+| Stein variational Newton | [Detommaso, Cui, Marzouk, Spantini, and Scheichl 2018](https://proceedings.neurips.cc/paper_files/paper/2018/hash/fdaa09fc5ed18d3226b3a1a00f1bc48c-Abstract.html) | The method uses second-order information to approximate a Newton iteration in function space and to choose more effective kernels for the interacting particles. Run it beside SVGD to show how curvature information changes motion on the ill-conditioned target. |
+
+### The surrogate family
+
+- [ ] Add [local approximation MCMC](https://arxiv.org/abs/1402.1694) (Conrad, Marzouk, Pillai, and Smith 2016). The method treats the forward model inside the likelihood as expensive. Build local polynomial approximations from evaluated model points, and use both cross-validation error indicators and randomized refinement to request new evaluations of the true model. Show the local fit neighborhoods and evaluated model points accumulating along the chain's path. This entry teaches the cost structure of scientific inference in which one likelihood evaluation can require a simulation. Add an artificial delay to each true model evaluation so that the interface shows the computational budget.
+
+### The learned-dynamics family
+
+- [ ] Add annealed Langevin sampling with a learned score (Song and Ermon 2019), per breakthrough direction 5.
+- [ ] Add [ChEES-HMC](https://proceedings.mlr.press/v130/hoffman21a.html) (Hoffman, Radul, and Sountsov 2021). Cross-chain adaptation of the trajectory length replaces NUTS's per-chain tree building, and beside the ensemble view it shows how running many parallel chains changed sampler design on accelerators.
+- [ ] Add [flow matching](https://arxiv.org/abs/2210.02747) (Lipman et al. 2023). Label it as sample-trained transport rather than a density-only sampler. Train the velocity field on the output of a long NUTS run on the same target, then use the learned ordinary differential equation to transport fresh reference points. Use the optimal-transport conditional path from the paper. Show the learned velocity field and compare the optimal-transport and diffusion conditional paths used for training. Do not describe the learned marginal trajectories as straight; flow matching also supports diffusion paths, and the learned trajectories need not inherit the shape of the conditional training paths.
+- [ ] Treat flow training from unnormalized-density evaluations as the stretch tier. [Annealed flow transport](https://arxiv.org/abs/2102.07501) (Arbel, Matthews, and Doucet 2021) and [flow annealed importance sampling bootstrap](https://arxiv.org/abs/2208.01893) (Midgley et al. 2023) train flows without a preexisting set of target samples. AFT uses sequential Monte Carlo with learned transports, importance weights, resampling, and MCMC moves. FAB bootstraps its training distribution with annealed importance sampling. [Denoising diffusion samplers](https://arxiv.org/abs/2302.13834) (Vargas et al. 2023) belong to the same tier. This machinery may be too much for the essay. [Gibbs-with-gradients](https://proceedings.mlr.press/v139/grathwohl21a.html) (Grathwohl et al. 2021) stays out until the demo has a discrete target.
+- [ ] Add an energy-based model training mode. An energy-based model is an unnormalized density whose training loop is this demo's subject. Persistent contrastive divergence ([Tieleman 2008](https://icml.cc/Conferences/2008/papers/638.pdf)) maintains a pool of negative samples between parameter updates, and continuous energy-based models update that pool with short-run Langevin steps ([Nijkamp et al. 2019](https://arxiv.org/abs/1904.09770)). Train a small two-input energy network on samples from a chosen target and show the negative-sample pool pursuing the model as it learns. This closes the loop from sampling a given density to learning a density by sampling, and it places energy-based methods as a trainable target family rather than a sampler family.
+
+### The function-space tier
+
+- [ ] After the dimension slider exists, add a [dimension-independent likelihood-informed (DILI) MCMC](https://arxiv.org/abs/1411.3688) demonstration (Cui, Law, and Marzouk 2016) on a Gaussian-reference inverse problem, and compare it with pCN as the discretization is refined. DILI constructs a likelihood-informed subspace from Hessian information and uses operator-weighted proposals that remain valid on function space. When the departure from the prior concentrates in finitely many directions, show those directions while dimension-independent, prior-preserving moves handle the complementary subspace. This demonstration teaches robustness under mesh refinement rather than robustness to arbitrary increases in finite dimension.
+
+The target changes stand:
 
 - [ ] Add an ill-conditioned Gaussian target with correlation 0.99 and a heavy-tailed Student-t target. The first shows the effects of preconditioning and gradients; the second shows HMC's behavior in heavy tails.
 - [ ] Fold the draw-your-own-density mode into direction 6 above.
@@ -183,5 +234,5 @@ The target plan has two changes:
 4. Land the baseline user-experience and pedagogy items that do not depend on parallel engine instances for the existing thirteen algorithms.
 5. Build the platform: extract the engine with replay-equivalence tests, add automatic-differentiation targets and the statistical checks, and then land the two-panel comparison mode.
 6. Build directions 1 through 3: multi-chain diagnostics, the dimension slider, and the reparameterization morph. These directions establish the diagnostic and geometric concepts that later directions reuse.
-7. Prototype directions 4 through 8 in order, and require each prototype to demonstrate its pedagogic story and user-facing improvement before full implementation. Add an algorithm from the table when its visualization supports one of these directions or a course chapter.
+7. Prototype directions 4 through 8 in order, and require each prototype to demonstrate its pedagogic story and user-facing improvement before full implementation. Consolidate NUTS first, then add algorithms from the collection family by family when a visualization supports one of these directions or an essay chapter.
 8. Build classroom mode after the phone and multi-chain work, and revisit shared hosting with `gp-demo` after the platform and course layer exist.
